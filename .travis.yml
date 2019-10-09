@@ -23,7 +23,7 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
 
-  - conda env create -n test-environment python=$TRAVIS_PYTHON_VERSION -f nr_fano_env.yml 
+  - conda env create -n test-environment python=$TRAVIS_PYTHON_VERSION -f r68_env.yml 
   - source activate test-environment
 
 before_script: cd analysis_notebooks
