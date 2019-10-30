@@ -3,7 +3,12 @@ import numpy as np
 from scipy.special import erf
 import sys
 sys.path.append('../python/')
-import damic_y as dy 
+import damic_y as dy
+#see the link below for the reason for the filtrations
+#https://stackoverflow.com/questions/40845304/runtimewarning-numpy-dtype-size-changed-may-indicate-binary-incompatibility
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 class Yield:
     def __init__(self, model, pars):

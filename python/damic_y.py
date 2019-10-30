@@ -9,9 +9,6 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 import scipy.interpolate as inter
 
-
-
-
 #get the equivalent charge energy for a recoil of energy E with parameters in the structure par
 #def getLindhard(E,par=None):
 def getDAMICy(file='data/DAMIC_siyield_allerr.txt'):

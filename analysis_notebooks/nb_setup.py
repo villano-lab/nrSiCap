@@ -12,7 +12,7 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 #got smarter about the mpl config: see mplstyles/ directory
 plt.style.use('standard')
-print(mpl.__version__) 
+print(mpl.__version__)
 print(mpl.get_configdir())
 
 
