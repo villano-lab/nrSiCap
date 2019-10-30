@@ -4,7 +4,7 @@
 import constants as const
 import R68_efficiencies as eff
 from scipy.special import erf
-exec(open("nb_setup.py").read()) #Is there a better way to do this?
+import numpy as np
 
 ###########################################################################
 #Apply yield, resolution, efficiencies etc. to simulated data to get an instance of a simulated E_ee spectrum
@@ -19,6 +19,7 @@ exec(open("nb_setup.py").read()) #Is there a better way to do this?
 #scale_g4: Scaling of NR+ER sim spectrum 
 #scale_ng(n,gamma) spectrum scaling factor
 #doDetRes: whether to apply detector resolution function
+#seed: random number generator seed
 #
 #Returns: (n_Eee_nr, n_Eee_er, n_Eee_ng) The binned spectra of NR, ER, and (n,gamma) events in units of [counts/bin]
 
@@ -126,7 +127,7 @@ def buildSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_NR, 
 #Returns: (n_Eee_nr, n_Eee_er, n_Eee_ng) The binned spectra of NR, ER, and (n,gamma) events in units of [counts/bin]
 #
 #TODO: -Handle low energy Neh consistent with model used in buildSpectra
-def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_NR, scale_g4=1, scale_ng=1, doDetRes=True, seed=1):
+def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_NR, scale_g4=1, scale_ng=1, doDetRes=True):
 
     V=const.V
     G_NTL=const.G_NTL
@@ -139,8 +140,6 @@ def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_N
     B=const.B #This includes FANO
     B_1=B-F*eps
     A=const.A
-    
-    np.random.seed(seed)
 
     ###############
     #Binning
@@ -336,6 +335,27 @@ def gausInt(mu, sigma, xlow, xhi):
 ###########################################################################
 #Plot of individual and combined simulated spectra and observed spectrum
 def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, xrange=(0,1e3), yrange=(0,1e-2), yscale='linear', thresh=None):
+    
+    #######################
+    #Plotting styles
+    import os
+    #set up matplotlib
+    os.environ['MPLCONFIGDIR'] = '../mplstyles'
+    import matplotlib as mpl
+    from matplotlib import pyplot as plt
+    #got smarter about the mpl config: see mplstyles/ directory
+    plt.style.use('standard')
+
+    #fonts
+    # Set the font dictionaries (for plot title and axis titles)
+    title_font = {'fontname':'Arial', 'size':'16', 'color':'black', 'weight':'normal',
+                  'verticalalignment':'bottom'} # Bottom vertical alignment for more space
+    axis_font = {'fontname':'Arial', 'size':'32'}
+    legend_font = {'fontname':'Arial', 'size':'22'}
+
+    #fonts global settings
+    mpl.rc('font',family=legend_font['fontname'])
+    #######################
     
     fig_w=9
     fig,axes = plt.subplots(1,1,figsize=(fig_w, fig_w*(.75)), sharex=True)

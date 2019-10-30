@@ -4,10 +4,10 @@ import numpy as np
 ############################################################################
 #Load measured R68 PuBe and Bkg data
 def load_measured():
+    print('Loading Measured Data...')
     fpube = open('data/r68_n125_PuBe_cgood_final_PTOFkeV_2keV_scan_fmt.txt')
     fbknd = open('data/r68_n125_bkg_cgood_final_PTOFkeV_2keV_scan_fmt.txt')
 
-    print('Loading Measured Data...')
     dE = np.asarray([x.split() for x in fpube.readlines()],dtype=np.float)
     dbE = np.asarray([x.split() for x in fbknd.readlines()],dtype=np.float)
 
@@ -31,6 +31,7 @@ def load_measured():
 ############################################################################
 #load simulated Geant4 data
 def load_G4():
+    print('Loading Geant4 Data...')
     #===============to suppress h5py warning see:
     #https://github.com/h5py/h5py/issues/961
     import warnings
@@ -122,6 +123,7 @@ def load_G4():
 ############################################################################
 #load simulated Capture data
 def load_simcap(lifetimes='fast', Ncascades='200k'):
+    print('Loading (n,gamma) Data...')
     #'fast' or 'slow'
     #'2M' or '200k'
     
@@ -131,7 +133,7 @@ def load_simcap(lifetimes='fast', Ncascades='200k'):
     with open('/data/chocula/villaa/cascadeSimData/normsi_{0}_{1}.pkl'.format(lifetimes, Ncascades),'rb') as readFile:
           cdata=pkl.load(readFile,encoding='latin1')
 
-    print(cdata.keys())
+    #print(cdata.keys())
     print(cdata['totalevents'])
 
     #Use only the events where the gamma escapes
