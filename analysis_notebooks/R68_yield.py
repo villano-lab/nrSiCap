@@ -70,8 +70,14 @@ def yChav(Er,k,a):
 def ySor(Er,k,q):
     Z=14.
     eps = 11.5*Er/1000*Z**(-7./3)
-    #This can go negative for large q/eps
-    return np.maximum(0,yLind(Er,k)-q/eps)
+    
+    y=yLind(Er,k)-q/eps
+    
+    #Can get some non-physical values here
+    y[eps<=0]=0.0
+    y[y<0]=0.0
+
+    return y
 
 #a spline extrapolation to DAMIC data
 yDamic = np.vectorize(dy.getDAMICy())
