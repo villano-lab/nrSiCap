@@ -54,6 +54,9 @@ class Yield:
 #http://gymarkiv.sdu.dk/MFM/kdvs/mfm%2030-39/mfm-33-10.pdf
 #k = 0.133Z^(2/3)A^(−1/2)
 #This is only decent for eps>0.01 => Er>400 eV
+
+# Er: Nuclear recoil energy [eV]
+# k: Lindhard k factor [unitless]
 def yLind(Er, k):
     Z=14.
     eps = 11.5*Er/1000*Z**(-7./3)
@@ -62,8 +65,12 @@ def yLind(Er, k):
 
 #Lindhard w/ Chavarria tweak
 #https://arxiv.org/pdf/1803.02903.pdf
+
+# Er: Nuclear recoil energy [eV]
+# k: Lindhard k factor [unitless]
+# a: Chavaria cutoff factor [unitless]
 def yChav(Er,k,a):
-    return 1/(1/(a*Er)+1/yLind(Er,k))
+    return 1/(1/(a*Er/1000)+1/yLind(Er,k))
 
 #Sorenson: Lindhard + constant
 #https://journals.aps.org/prd/pdf/10.1103/PhysRevD.91.083509
