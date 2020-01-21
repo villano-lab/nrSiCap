@@ -334,7 +334,7 @@ def gausInt(mu, sigma, xlow, xhi):
 
 ###########################################################################
 #Plot of individual and combined simulated spectra and observed spectrum
-def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, xrange=(0,1e3), yrange=(0,1e-2), yscale='linear', thresh=None):
+def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, xrange=(0,1e3), yrange=(0,1e-2), yscale='linear', thresh=None, axis=None):
     
     #######################
     #Plotting styles
@@ -357,43 +357,43 @@ def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, xrange=(0,1e3), yrang
     mpl.rc('font',family=legend_font['fontname'])
     #######################
     
-    fig_w=9
-    fig,axes = plt.subplots(1,1,figsize=(fig_w, fig_w*(.75)), sharex=True)
-    ax1 = axes
+    if axis is None:
+        fig_w=9
+        fig,axis = plt.subplots(1,1,figsize=(fig_w, fig_w*(.75)), sharex=True)
 
     dE = E_bins[1]-E_bins[0]
     
     Ec = (E_bins[:-1] + E_bins[1:]) / 2
     
-    ax1.step(Ec,N_nr, where='mid',color='k', linestyle='-', \
+    axis.step(Ec,N_nr, where='mid',color='k', linestyle='-', \
              label='NR, no Capture', linewidth=2)
 
-    ax1.step(Ec,N_er, where='mid',color='r', linestyle='-', \
+    axis.step(Ec,N_er, where='mid',color='r', linestyle='-', \
              label='ER, no Capture', linewidth=2)
 
-    ax1.step(Ec,N_ng, where='mid',color='b', linestyle='-', \
+    axis.step(Ec,N_ng, where='mid',color='b', linestyle='-', \
              label='(n,gamma)', linewidth=2)
 
-    ax1.step(Ec,N_nr+N_er+N_ng, where='mid',color='g', linestyle='-', \
+    axis.step(Ec,N_nr+N_er+N_ng, where='mid',color='g', linestyle='-', \
              label='All Sims', linewidth=2)
 
-    ax1.errorbar(Ec,N_meas,yerr=[dN_meas,dN_meas], marker='o', markersize=6, \
+    axis.errorbar(Ec,N_meas,yerr=[dN_meas,dN_meas], marker='o', markersize=6, \
                  ecolor='k',color='k', linestyle='none', label='Data-Bkg', linewidth=2)
     
     if thresh is not None:
-        ax1.axvline(thresh, color='m', linestyle='--', linewidth=2, label='Threshold')
+        axis.axvline(thresh, color='m', linestyle='--', linewidth=2, label='Threshold')
     
-    ax1.set_yscale(yscale)
-    ax1.set_xlim(*xrange)
-    ax1.set_ylim(*yrange)
-    ax1.set_xlabel('total deposited energy [eV$_{\\mathrm{ee}}$]',**axis_font)
-    #ax1.set_ylabel('counts',**axis_font)
-    ax1.set_ylabel('Events/bin/s',**axis_font)
-    ax1.grid(True)
-    ax1.yaxis.grid(True,which='minor',linestyle='--')
-    ax1.legend(loc=1,prop={'size':22})
+    axis.set_yscale(yscale)
+    axis.set_xlim(*xrange)
+    axis.set_ylim(*yrange)
+    axis.set_xlabel('total deposited energy [eV$_{\\mathrm{ee}}$]',**axis_font)
+    #axis.set_ylabel('counts',**axis_font)
+    axis.set_ylabel('Events/bin/s',**axis_font)
+    axis.grid(True)
+    axis.yaxis.grid(True,which='minor',linestyle='--')
+    axis.legend(loc=1,prop={'size':22})
 
-    for axis in ['top','bottom','left','right']:
-      ax1.spines[axis].set_linewidth(2)
+    for ax in ['top','bottom','left','right']:
+      axis.spines[ax].set_linewidth(2)
 
     plt.tight_layout()

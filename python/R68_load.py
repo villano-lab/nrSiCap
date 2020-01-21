@@ -140,8 +140,9 @@ def load_simcap(lifetimes='fast', Ncascades='200k'):
     #Assume those where it doesn't escape end up at high Eee
     E_ng = cdata['E'][cdata['cEscape']]
     dE_ng = cdata['delE'][cdata['cEscape']]
+    N = cdata['n'][cdata['cEscape']]
     
     #https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_n125:full_signal_fit&#efficiencies_and_live_time
     tlive_ng = cdata['totalevents']/0.218 #[s]
     
-    return {"E":E_ng, "dE":dE_ng, "tlive":tlive_ng}
+    return {"E":E_ng, "dE":dE_ng, "N":N, "tlive":tlive_ng}
