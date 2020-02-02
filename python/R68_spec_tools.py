@@ -138,7 +138,8 @@ def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_N
     #https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_panda:calibration#resolution_versus_energy
     sigma0=const.sigma0 #eV 
     B=const.B #This includes FANO
-    B_1=B-F*eps
+    #B_1=B-F*eps #Actually only true for V->inf (http://www.hep.umn.edu/cdms/cdms_restricted/K100/analysis/Peak_Widths.pdf)
+    B_1=B-F*V**2/eps/(1+V/eps)**2
     A=const.A
 
     ###############
@@ -170,7 +171,8 @@ def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_N
     SigmaEee_nr =SigmaEee_nr[:,np.newaxis]
     
     #Weighted spectra of Eee energies measured
-    nvec_Eee_nr = gausInt(Eee_nr, SigmaEee_nr, Ebins[:-1], Ebins[1:])
+    #nvec_Eee_nr = gausInt(Eee_nr, SigmaEee_nr, Ebins[:-1], Ebins[1:])
+    nvec_Eee_nr = gausInt_fast(Eee_nr, SigmaEee_nr, Ebins)
     #NR spectrum
     n_Eee_nr = np.sum(nvec_Eee_nr,0)
 
@@ -188,7 +190,8 @@ def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_N
     SigmaEee_er = SigmaEee_er[:,np.newaxis]
     
     #Weighted spectra of Eee energies
-    nvec_Eee_er = gausInt(Eee_er, SigmaEee_er, Ebins[:-1], Ebins[1:])
+    #nvec_Eee_er = gausInt(Eee_er, SigmaEee_er, Ebins[:-1], Ebins[1:])
+    nvec_Eee_er = gausInt_fast(Eee_er, SigmaEee_er, Ebins)
     #ER spectrum
     n_Eee_er = np.sum(nvec_Eee_er,0)
     
@@ -216,7 +219,8 @@ def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_N
     SigmaEee_ng = SigmaEee_ng[:,np.newaxis]
 
     #Weighted spectra of Eee energies measured
-    nvec_Eee_ng = gausInt(Eee_ng, SigmaEee_ng, Ebins[:-1], Ebins[1:])
+    #nvec_Eee_ng = gausInt(Eee_ng, SigmaEee_ng, Ebins[:-1], Ebins[1:])
+    nvec_Eee_ng = gausInt_fast(Eee_ng, SigmaEee_ng, Ebins)
     #(n,gamma) spectrum
     n_Eee_ng = np.sum(nvec_Eee_ng,0)
 
@@ -233,7 +237,8 @@ def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_N
     ###############
     if doDetRes:
         #Calc gaus kernels once and reuse them for each broadcast
-        gaus_kernel = gausInt(Ebin_ctr[:,np.newaxis], sigma_ee(Ebin_ctr[:,np.newaxis],sigma0,B_1,A), Ebins[:-1], Ebins[1:])
+        #gaus_kernel = gausInt(Ebin_ctr[:,np.newaxis], sigma_ee(Ebin_ctr[:,np.newaxis],sigma0,B_1,A), Ebins[:-1], Ebins[1:])
+        gaus_kernel = gausInt_fast(Ebin_ctr[:,np.newaxis], sigma_ee(Ebin_ctr[:,np.newaxis],sigma0,B_1,A), Ebins)
         
         #Smear spectrum using resolution function
         #NR 
@@ -293,7 +298,8 @@ def getSmeared(E, doLowEbias=False):
     #https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_panda:calibration#resolution_versus_energy
     sigma0=const.sigma0 #eV 
     B=const.B #This includes FANO
-    B_1=B-const.F*const.eps
+    # B_1=B-const.F*const.eps #Actually only true for V->inf (http://www.hep.umn.edu/cdms/cdms_restricted/K100/analysis/Peak_Widths.pdf)
+    B_1=B-const.F*const.V**2/const.eps/(1+const.V/const.eps)**2
     A=const.A
     
     #Ignore low energy bias for faster execution
@@ -330,8 +336,25 @@ def P_OF0(Ahat,A,sigma):
 ###########################################################################
 #Integral of gaussian
 def gausInt(mu, sigma, xlow, xhi):
-    return np.where(sigma>0, 0.5*erf((mu-xlow)/np.sqrt(2*sigma**2)) - 0.5*erf((mu-xhi)/np.sqrt(2*sigma**2)), 1.0*((mu>xlow) & (mu<xhi)))
+    return np.where(sigma>0, 0.5*erf((mu-xlow)/np.sqrt(2)/sigma) - 0.5*erf((mu-xhi)/np.sqrt(2)/sigma), 1.0*((mu>xlow) & (mu<xhi)))
 
+#Faster implementation of gausInt
+#Uses lookup table for erf and smarter broadcasting steps
+#Gives about 2x speed improvement
+#mu: gaussian means
+#sigma: gaussian widths
+#bins: bin edges
+def gausInt_fast(mu, sigma, bins):
+    #Lookup table for erf
+    x = np.linspace(-3, 3, 1001)    #There are better sampling points, but this is sufficient to ~0.001%
+    y = [erf(_) for _ in x ]
+    erf_tab = lambda z : np.interp(z, x, y, left=-1,right=1)
+    
+    #Precalculate these ratios
+    a=mu/np.sqrt(2)/sigma
+    b=bins/np.sqrt(2)/sigma
+    
+    return np.where(sigma>0,0.5*erf_tab(a-b[:,:-1])-0.5*erf_tab(a-b[:,1:]), np.histogram(mu,bins)[0])
 ###########################################################################
 #Plot of individual and combined simulated spectra and observed spectrum
 def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, xrange=(0,1e3), yrange=(0,1e-2), yscale='linear', thresh=None, axis=None):
