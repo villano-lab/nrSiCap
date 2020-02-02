@@ -68,7 +68,7 @@ def yLind(Er, k):
 
 # Er: Nuclear recoil energy [eV]
 # k: Lindhard k factor [unitless]
-# a: Chavaria cutoff factor [unitless]
+# a: Chavaria cutoff factor [1/eV]
 def yChav(Er,k,a):
     return 1/(1/(a*Er/1000)+1/yLind(Er,k))
 
