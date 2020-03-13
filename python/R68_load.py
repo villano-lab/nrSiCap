@@ -30,7 +30,8 @@ def load_measured():
 
 ############################################################################
 #load simulated Geant4 data
-def load_G4():
+#load_frac: fraction of simulated events to actually load
+def load_G4(load_frac=1.0):
     print('Loading Geant4 Data...')
     #===============to suppress h5py warning see:
     #https://github.com/h5py/h5py/issues/961
@@ -52,7 +53,7 @@ def load_G4():
     print(np.shape(data_er_nocap))
 
     #https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_n125:full_signal_fit&#efficiencies_and_live_time
-    tlive_g4 = 18.9*3600 #s
+    tlive_g4 = 18.9*3600*load_frac #s
 
     #now make a dataframe with the restricted data
     #Columns are:
@@ -85,13 +86,13 @@ def load_G4():
     #NR, no capture
     print("Loading NRs...")
     start = time.time()
-    max_vec_nr_nocap = np.max(nr_nocap_dataframe.groupby(groupbyvec).size())
-    nev_nr_nocap = nr_nocap_dataframe.EVnew.nunique()
+    nev_nr_nocap = int(nr_nocap_dataframe.EVnew.nunique()*load_frac)
+    max_vec_nr_nocap = np.max(nr_nocap_dataframe.groupby(groupbyvec).size()[:nev_nr_nocap-1])
 
     evec_nr_nocap = np.zeros((nev_nr_nocap,max_vec_nr_nocap))#Hit energies
     nhit_nr_nocap = np.zeros((nev_nr_nocap,1))#Number of hits
 
-    nr_nocap_grouped=nr_nocap_dataframe.groupby(groupbyvec).agg({'D3':list})
+    nr_nocap_grouped=nr_nocap_dataframe.groupby(groupbyvec).agg({'D3':list})[:nev_nr_nocap-1]
     for iev,d3 in enumerate(nr_nocap_grouped.D3):
         evec_nr_nocap[iev,0:len(d3)] = d3
         nhit_nr_nocap[iev] = len(d3)
@@ -103,13 +104,13 @@ def load_G4():
     #ER, no capture
     print("Loading ERs...")
     start = time.time()
-    max_vec_er_nocap = np.max(er_nocap_dataframe.groupby(groupbyvec).size())
-    nev_er_nocap = er_nocap_dataframe.EVnew.nunique()
+    nev_er_nocap = int(er_nocap_dataframe.EVnew.nunique()*load_frac)
+    max_vec_er_nocap = np.max(er_nocap_dataframe.groupby(groupbyvec).size()[:nev_er_nocap-1])
 
     evec_er_nocap = np.zeros((nev_er_nocap,max_vec_er_nocap))#Hit energies
     nhit_er_nocap = np.zeros((nev_er_nocap,1))#Number of hits
 
-    er_nocap_grouped=er_nocap_dataframe.groupby(groupbyvec).agg({'D3':list})
+    er_nocap_grouped=er_nocap_dataframe.groupby(groupbyvec).agg({'D3':list})[:nev_er_nocap-1]
     for iev,d3 in enumerate(er_nocap_grouped.D3):
         evec_er_nocap[iev,0:len(d3)] = d3 #[eV]
         nhit_er_nocap[iev] = len(d3)
@@ -122,15 +123,15 @@ def load_G4():
 
 ############################################################################
 #load simulated Capture data
-def load_simcap(lifetimes='fast', Ncascades='200k'):
+#rcapture: expected capture rate, used to set livetime
+#load_frac: fraction of simulated events to load. Adjusts livetime appropriately
+def load_simcap(file='/data/chocula/villaa/cascadeSimData/normsi_fast_200k.pkl', rcapture=0.218, load_frac=1.0):
     print('Loading (n,gamma) Data...')
-    #'fast' or 'slow'
-    #'2M' or '200k'
     
     import pickle as pkl
     
     #load up some cascade simulated data
-    with open('/data/chocula/villaa/cascadeSimData/normsi_{0}_{1}.pkl'.format(lifetimes, Ncascades),'rb') as readFile:
+    with open(file,'rb') as readFile:
           cdata=pkl.load(readFile,encoding='latin1')
 
     #print(cdata.keys())
@@ -142,7 +143,13 @@ def load_simcap(lifetimes='fast', Ncascades='200k'):
     dE_ng = cdata['delE'][cdata['cEscape']]
     N = cdata['n'][cdata['cEscape']]
     
+    nload=int(len(E_ng)*load_frac)
+    
+    E_ng = E_ng[:nload]
+    dE_ng = dE_ng[:nload]
+    N = N[:nload]
+    
     #https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_n125:full_signal_fit&#efficiencies_and_live_time
-    tlive_ng = cdata['totalevents']/0.218 #[s]
+    tlive_ng = load_frac*cdata['totalevents']/rcapture #[s]
     
     return {"E":E_ng, "dE":dE_ng, "N":N, "tlive":tlive_ng}

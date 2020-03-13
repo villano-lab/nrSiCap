@@ -127,7 +127,7 @@ def buildSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_NR, 
 #Returns: (n_Eee_nr, n_Eee_er, n_Eee_ng) The binned spectra of NR, ER, and (n,gamma) events in units of [counts/bin]
 #
 #TODO: -Handle low energy Neh consistent with model used in buildSpectra
-def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_NR, scale_g4=1, scale_ng=1, doDetRes=True):
+def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_NR, scale_g4=1, scale_ng=1, doDetRes=True, fpeak=0.753):
 
     V=const.V
     G_NTL=const.G_NTL
@@ -224,6 +224,183 @@ def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_N
     #(n,gamma) spectrum
     n_Eee_ng = np.sum(nvec_Eee_ng,0)
 
+    ###############
+    #Vbias Smearing
+    ###############
+    #Currently only for studying systematic uncertainties, smearing model is an over-estimation
+    #See EPot_Model.ipynb
+    expdelta_kernel=expdelta_int(Ebin_ctr[:,np.newaxis],fpeak,4.20823831,Ebins)
+    
+    #Smear spectrum using resolution function
+    #NR 
+    n_Eee_nr_smeared_vec = n_Eee_nr[:,np.newaxis]*expdelta_kernel
+    n_Eee_nr = np.sum(n_Eee_nr_smeared_vec,0)
+
+    #ER
+    n_Eee_er_smeared_vec = n_Eee_er[:,np.newaxis]*expdelta_kernel
+    n_Eee_er = np.sum(n_Eee_er_smeared_vec,0)
+
+    #(n,gamma)
+    n_Eee_ng_smeared_vec = n_Eee_ng[:,np.newaxis]*expdelta_kernel
+    n_Eee_ng = np.sum(n_Eee_ng_smeared_vec,0)
+    
+    ###############
+    #Trigger Efficiency
+    ###############
+    tEff=eff.trigEff(Ebin_ctr)
+    n_Eee_nr = n_Eee_nr*tEff
+    n_Eee_er = n_Eee_er*tEff
+    n_Eee_ng  = n_Eee_ng*tEff
+
+    ###############
+    #Detector Resolution
+    ###############
+    if doDetRes:
+        #Calc gaus kernels once and reuse them for each broadcast
+        #gaus_kernel = gausInt(Ebin_ctr[:,np.newaxis], sigma_ee(Ebin_ctr[:,np.newaxis],sigma0,B_1,A), Ebins[:-1], Ebins[1:])
+        gaus_kernel = gausInt_fast(Ebin_ctr[:,np.newaxis], sigma_ee(Ebin_ctr[:,np.newaxis],sigma0,B_1,A), Ebins)
+        
+        #Smear spectrum using resolution function
+        #NR 
+        n_Eee_nr_smeared_vec = n_Eee_nr[:,np.newaxis]*gaus_kernel
+        n_Eee_nr = np.sum(n_Eee_nr_smeared_vec,0)
+        
+        #ER
+        n_Eee_er_smeared_vec = n_Eee_er[:,np.newaxis]*gaus_kernel
+        n_Eee_er = np.sum(n_Eee_er_smeared_vec,0)
+
+        #(n,gamma)
+        n_Eee_ng_smeared_vec = n_Eee_ng[:,np.newaxis]*gaus_kernel
+        n_Eee_ng = np.sum(n_Eee_ng_smeared_vec,0)
+    
+    ###############
+    #Efficiencies
+    ###############
+    
+    #Analysis cut efficiencies
+    eff_cuts = eff.cutEff(Ebin_ctr)
+    
+    n_Eee_nr = n_Eee_nr*eff_cuts*scale_g4
+    n_Eee_er = n_Eee_er*eff_cuts*scale_g4
+    n_Eee_ng = n_Eee_ng*eff_cuts*scale_ng
+    
+    return (n_Eee_nr, n_Eee_er, n_Eee_ng)
+
+
+###########################################################################
+#Apply yield, resolution, efficiencies etc. to simulated ER or NR hit data to get an average spectrum
+##########################
+#NOTE: For composite NR's like (n,gamma), use buildAvgSimSpectrum_ee_composite instead!
+##########################
+#
+#This version just takes a single data type (either ER or NR) at a time.
+#
+#Ebins: Bin edges in [eV]
+#Evec: Array of hit vectors
+#Yield: Either a constant or a Yield object with a .calc method as defined in R68_yield.py
+#F_NR: Nuclear recoil Fano factor
+#scale: Scaling of spectrum 
+#doDetRes: whether to apply detector resolution function
+#fpeak: Vbias smearing effect parameter. Fraction of events which are NOT smeared. (1.0=no smearing) See EPot_Model.ipynb
+#
+#Returns: n_Eee: The binned spectra of events in units of [counts/bin]
+#
+#TODO: -Handle low energy Neh consistent with model used in buildSpectra
+def buildAvgSimSpectrum_ee(Ebins, Evec, Yield, F_NR, scale, doDetRes=True, fpeak=1.0):
+
+    V=const.V
+    G_NTL=const.G_NTL
+    eps=const.eps
+    F=const.F
+    
+    #Params from Matt's Bkg resolution fit:
+    #https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_panda:calibration#resolution_versus_energy
+    sigma0=const.sigma0 #eV 
+    B=const.B #This includes FANO
+    #B_1=B-F*eps #Actually only true for V->inf (http://www.hep.umn.edu/cdms/cdms_restricted/K100/analysis/Peak_Widths.pdf)
+    B_1=B-F*V**2/eps/(1+V/eps)**2
+    A=const.A
+
+    ###############
+    #Binning
+    ###############
+    Ebin_ctr = (Ebins[:-1]+Ebins[1:])/2
+
+    ###############
+    #Yield, Fano
+    ###############
+
+    
+    if isinstance(Yield,(float,int)):
+        #<E_ee> for each hit
+        EeeVec = Evec*(1 + Yield*V/eps) / G_NTL
+        #Fano width in Evee^2 for each hit
+        SigmaEeeSqVec = Evec*Y*(V**2)*F_NR/eps/(G_NTL**2)
+    else:
+        #<E_ee> for each hit
+        EeeVec = Evec*(1 + Yield.calc(Evec)*V/eps) / G_NTL
+        #Fano width in Evee^2 for each hit
+        SigmaEeeSqVec = Evec*Yield.calc(Evec)*(V**2)*F_NR/eps/(G_NTL**2)
+    
+    
+    #energy==0 (no hit) may still generate Yield!=0, take care of that here
+    SigmaEeeSqVec[Evec_nr<=0]=0.0
+    #TODO:Below here
+    
+    #Sum hits assuming they're uncorrelated
+    Eee_nr=np.sum(EeeVec_nr,1)
+    SigmaEee_nr = np.sqrt(np.sum(SigmaEeeSqVec_nr,1)) 
+    
+    #Reshape so we can broadcast against bin centers
+    Eee_nr = Eee_nr[:,np.newaxis]
+    SigmaEee_nr =SigmaEee_nr[:,np.newaxis]
+    
+    #Weighted spectra of Eee energies measured
+    #nvec_Eee_nr = gausInt(Eee_nr, SigmaEee_nr, Ebins[:-1], Ebins[1:])
+    nvec_Eee_nr = gausInt_fast(Eee_nr, SigmaEee_nr, Ebins)
+    #NR spectrum
+    n_Eee_nr = np.sum(nvec_Eee_nr,0)
+
+    
+    ################
+    #ER, No capture
+
+    #Recoil energy, Er, in each event
+    Eee_er = np.sum(Evec_er,1)
+    #Fano width in eVee
+    SigmaEee_er = np.sqrt(Eee_er*(V**2)*F/eps/(G_NTL**2))
+
+    #Reshape so we can broadcast against bin centers
+    Eee_er = Eee_er[:,np.newaxis]
+    SigmaEee_er = SigmaEee_er[:,np.newaxis]
+    
+    #Weighted spectra of Eee energies
+    #nvec_Eee_er = gausInt(Eee_er, SigmaEee_er, Ebins[:-1], Ebins[1:])
+    nvec_Eee_er = gausInt_fast(Eee_er, SigmaEee_er, Ebins)
+    #ER spectrum
+    n_Eee_er = np.sum(nvec_Eee_er,0)
+    
+
+    ###############
+    #Vbias Smearing
+    ###############
+    #Currently only for studying systematic uncertainties, smearing model is an over-estimation
+    #See EPot_Model.ipynb
+    expdelta_kernel=expdelta_int(Ebin_ctr[:,np.newaxis],fpeak,4.20823831,Ebins)
+    
+    #Smear spectrum using resolution function
+    #NR 
+    n_Eee_nr_smeared_vec = n_Eee_nr[:,np.newaxis]*expdelta_kernel
+    n_Eee_nr = np.sum(n_Eee_nr_smeared_vec,0)
+
+    #ER
+    n_Eee_er_smeared_vec = n_Eee_er[:,np.newaxis]*expdelta_kernel
+    n_Eee_er = np.sum(n_Eee_er_smeared_vec,0)
+
+    #(n,gamma)
+    n_Eee_ng_smeared_vec = n_Eee_ng[:,np.newaxis]*expdelta_kernel
+    n_Eee_ng = np.sum(n_Eee_ng_smeared_vec,0)
+    
     ###############
     #Trigger Efficiency
     ###############
@@ -341,9 +518,9 @@ def gausInt(mu, sigma, xlow, xhi):
 #Faster implementation of gausInt
 #Uses lookup table for erf and smarter broadcasting steps
 #Gives about 2x speed improvement
-#mu: gaussian means
-#sigma: gaussian widths
-#bins: bin edges
+#mu: gaussian means. Shape should be (N,1)
+#sigma: gaussian widths. Shape should be (N,1). Should all be sigma>=0
+#bins: bin edges. Shape should be (M+1,)
 def gausInt_fast(mu, sigma, bins):
     #Lookup table for erf
     x = np.linspace(-3, 3, 1001)    #There are better sampling points, but this is sufficient to ~0.001%
@@ -351,13 +528,61 @@ def gausInt_fast(mu, sigma, bins):
     erf_tab = lambda z : np.interp(z, x, y, left=-1,right=1)
     
     #Precalculate these ratios
-    a=mu/np.sqrt(2)/sigma
-    b=bins/np.sqrt(2)/sigma
+    #a=mu/np.sqrt(2)/sigma
+    #b=bins/np.sqrt(2)/sigma
     
-    return np.where(sigma>0,0.5*erf_tab(a-b[:,:-1])-0.5*erf_tab(a-b[:,1:]), np.histogram(mu,bins)[0])
+    #return np.where(sigma>0,0.5*erf_tab(a-b[:,:-1])-0.5*erf_tab(a-b[:,1:]), np.histogram(mu,bins)[0])
+    #return np.where(sigma>0,0.5*erf_tab(a-b[:,:-1])-0.5*erf_tab(a-b[:,1:]), 1.0*((mu>bins[:-1]) & (mu<bins[1:])))
+    
+    ###Avoid divide by 0
+    #Allocate the output array
+    #Assumes shapes described above
+    N=mu.shape[0]
+    M=bins.shape[0]-1
+    result=np.zeros((N,M))
+    
+    #Where is sigma zero?
+    sig0=(np.argwhere(sigma.reshape((-1))==0)).reshape((-1))
+    signz=(np.argwhere(sigma.reshape((-1))!=0)).reshape((-1))
+    
+    #Handle sigma==0
+    result[sig0]=1.0*((mu[sig0]>bins[:-1]) & (mu[sig0]<bins[1:]))
+    
+    #Handle sigma>0
+    #Shouldn't be any sigma<0...
+    a=mu[signz]/np.sqrt(2)/sigma[signz]
+    b=bins/np.sqrt(2)/sigma[signz]
+    
+    result[signz]=0.5*erf_tab(a-b[:,:-1])-0.5*erf_tab(a-b[:,1:])
+    
+    return result
+
+###########################################################################
+#Smearing function for fringing field effect
+
+#Integral of exponential PDF:P(x) = A*exp(B*(x-x0)/x0) + fpeak*delta(x-x0)
+#A is normalized such that the total integral is 1
+#
+#bins: bin edges to integrate between
+#x0: position of peak which we want to smear down
+#fpeak: fraction of events in the delta function peak, from fringing field simulations
+#B: fall rate [unitless], from fringing field simulations
+def expdelta_int(x0,fpeak,B, bins):
+    
+    arg=B*(bins-x0)/x0
+
+    #Integration bounds are (0,x0)
+    arg[bins>x0]=0
+    arg[bins<np.zeros_like(x0)]=-B
+    
+    #Calulate just once for speed
+    below_x0=bins<x0
+    
+    return ((1-fpeak)/(1-np.exp(-B)))*(np.exp(arg[:,1:]) - np.exp(arg[:,:-1])) + (below_x0[:,:-1] & ~below_x0[:,1:])*fpeak
+
 ###########################################################################
 #Plot of individual and combined simulated spectra and observed spectrum
-def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, xrange=(0,1e3), yrange=(0,1e-2), yscale='linear', thresh=None, axis=None):
+def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, xrange=(0,1e3), yrange=(0,1e-2), yscale='linear', thresh=None, axis=None, wLeg=True):
     
     #######################
     #Plotting styles
@@ -414,9 +639,12 @@ def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, xrange=(0,1e3), yrang
     axis.set_ylabel('Events/bin/s',**axis_font)
     axis.grid(True)
     axis.yaxis.grid(True,which='minor',linestyle='--')
-    axis.legend(loc=1,prop={'size':22})
+    if wLeg:
+        axis.legend(loc=1,prop={'size':22})
 
     for ax in ['top','bottom','left','right']:
       axis.spines[ax].set_linewidth(2)
 
     plt.tight_layout()
+    
+    return axis
