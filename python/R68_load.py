@@ -53,7 +53,8 @@ def load_G4(load_frac=1.0):
     print(np.shape(data_er_nocap))
 
     #https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_n125:full_signal_fit&#efficiencies_and_live_time
-    tlive_g4 = 18.9*3600*load_frac #s
+    #tlive_g4 = 18.9*3600*load_frac #s
+    tlive_g4 = 48.0*3600*load_frac #s
 
     #now make a dataframe with the restricted data
     #Columns are:

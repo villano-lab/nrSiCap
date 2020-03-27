@@ -229,20 +229,21 @@ def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_N
     ###############
     #Currently only for studying systematic uncertainties, smearing model is an over-estimation
     #See EPot_Model.ipynb
-    expdelta_kernel=expdelta_int(Ebin_ctr[:,np.newaxis],fpeak,4.20823831,Ebins)
+    if fpeak<1.0:
+        expdelta_kernel=expdelta_int(Ebin_ctr[:,np.newaxis],fpeak,4.20823831,Ebins)
     
-    #Smear spectrum using resolution function
-    #NR 
-    n_Eee_nr_smeared_vec = n_Eee_nr[:,np.newaxis]*expdelta_kernel
-    n_Eee_nr = np.sum(n_Eee_nr_smeared_vec,0)
+        #Smear spectrum using resolution function
+        #NR 
+        n_Eee_nr_smeared_vec = n_Eee_nr[:,np.newaxis]*expdelta_kernel
+        n_Eee_nr = np.sum(n_Eee_nr_smeared_vec,0)
 
-    #ER
-    n_Eee_er_smeared_vec = n_Eee_er[:,np.newaxis]*expdelta_kernel
-    n_Eee_er = np.sum(n_Eee_er_smeared_vec,0)
+        #ER
+        n_Eee_er_smeared_vec = n_Eee_er[:,np.newaxis]*expdelta_kernel
+        n_Eee_er = np.sum(n_Eee_er_smeared_vec,0)
 
-    #(n,gamma)
-    n_Eee_ng_smeared_vec = n_Eee_ng[:,np.newaxis]*expdelta_kernel
-    n_Eee_ng = np.sum(n_Eee_ng_smeared_vec,0)
+        #(n,gamma)
+        n_Eee_ng_smeared_vec = n_Eee_ng[:,np.newaxis]*expdelta_kernel
+        n_Eee_ng = np.sum(n_Eee_ng_smeared_vec,0)
     
     ###############
     #Trigger Efficiency
@@ -251,7 +252,7 @@ def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_N
     n_Eee_nr = n_Eee_nr*tEff
     n_Eee_er = n_Eee_er*tEff
     n_Eee_ng  = n_Eee_ng*tEff
-
+    
     ###############
     #Detector Resolution
     ###############
@@ -298,27 +299,26 @@ def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_N
 #Ebins: Bin edges in [eV]
 #Evec: Array of hit vectors
 #Yield: Either a constant or a Yield object with a .calc method as defined in R68_yield.py
-#F_NR: Nuclear recoil Fano factor
+#F: Fano factor
 #scale: Scaling of spectrum 
 #doDetRes: whether to apply detector resolution function
 #fpeak: Vbias smearing effect parameter. Fraction of events which are NOT smeared. (1.0=no smearing) See EPot_Model.ipynb
 #
 #Returns: n_Eee: The binned spectra of events in units of [counts/bin]
 #
-#TODO: -Handle low energy Neh consistent with model used in buildSpectra
-def buildAvgSimSpectrum_ee(Ebins, Evec, Yield, F_NR, scale, doDetRes=True, fpeak=1.0):
+def buildAvgSimSpectrum_ee(Ebins, Evec, Yield, F, scale, doDetRes=True, fpeak=1.0):
 
     V=const.V
     G_NTL=const.G_NTL
     eps=const.eps
-    F=const.F
+    F_ER=const.F
     
     #Params from Matt's Bkg resolution fit:
     #https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_panda:calibration#resolution_versus_energy
     sigma0=const.sigma0 #eV 
     B=const.B #This includes FANO
     #B_1=B-F*eps #Actually only true for V->inf (http://www.hep.umn.edu/cdms/cdms_restricted/K100/analysis/Peak_Widths.pdf)
-    B_1=B-F*V**2/eps/(1+V/eps)**2
+    B_1=B-F_ER*V**2/eps/(1+V/eps)**2
     A=const.A
 
     ###############
@@ -330,118 +330,164 @@ def buildAvgSimSpectrum_ee(Ebins, Evec, Yield, F_NR, scale, doDetRes=True, fpeak
     #Yield, Fano
     ###############
 
-    
     if isinstance(Yield,(float,int)):
         #<E_ee> for each hit
         EeeVec = Evec*(1 + Yield*V/eps) / G_NTL
         #Fano width in Evee^2 for each hit
-        SigmaEeeSqVec = Evec*Y*(V**2)*F_NR/eps/(G_NTL**2)
+        SigmaEeeSqVec = Evec*Yield*(V**2)*F/eps/(G_NTL**2)
     else:
         #<E_ee> for each hit
         EeeVec = Evec*(1 + Yield.calc(Evec)*V/eps) / G_NTL
         #Fano width in Evee^2 for each hit
-        SigmaEeeSqVec = Evec*Yield.calc(Evec)*(V**2)*F_NR/eps/(G_NTL**2)
+        SigmaEeeSqVec = Evec*Yield.calc(Evec)*(V**2)*F/eps/(G_NTL**2)
     
     
     #energy==0 (no hit) may still generate Yield!=0, take care of that here
-    SigmaEeeSqVec[Evec_nr<=0]=0.0
-    #TODO:Below here
+    SigmaEeeSqVec[Evec<=0]=0.0
     
-    #Sum hits assuming they're uncorrelated
-    Eee_nr=np.sum(EeeVec_nr,1)
-    SigmaEee_nr = np.sqrt(np.sum(SigmaEeeSqVec_nr,1)) 
-    
-    #Reshape so we can broadcast against bin centers
-    Eee_nr = Eee_nr[:,np.newaxis]
-    SigmaEee_nr =SigmaEee_nr[:,np.newaxis]
+    #Sum hits assuming they're uncorrelated and reshape so we can broadcast against bin centers
+    Eee=np.sum(EeeVec,1)[:,np.newaxis]
+    SigmaEee = np.sqrt(np.sum(SigmaEeeSqVec,1))[:,np.newaxis]
     
     #Weighted spectra of Eee energies measured
-    #nvec_Eee_nr = gausInt(Eee_nr, SigmaEee_nr, Ebins[:-1], Ebins[1:])
-    nvec_Eee_nr = gausInt_fast(Eee_nr, SigmaEee_nr, Ebins)
-    #NR spectrum
-    n_Eee_nr = np.sum(nvec_Eee_nr,0)
+    nvec_Eee = gausInt_fast(Eee, SigmaEee, Ebins)
+    #Spectrum
+    n_Eee = np.sum(nvec_Eee,0)
 
-    
-    ################
-    #ER, No capture
-
-    #Recoil energy, Er, in each event
-    Eee_er = np.sum(Evec_er,1)
-    #Fano width in eVee
-    SigmaEee_er = np.sqrt(Eee_er*(V**2)*F/eps/(G_NTL**2))
-
-    #Reshape so we can broadcast against bin centers
-    Eee_er = Eee_er[:,np.newaxis]
-    SigmaEee_er = SigmaEee_er[:,np.newaxis]
-    
-    #Weighted spectra of Eee energies
-    #nvec_Eee_er = gausInt(Eee_er, SigmaEee_er, Ebins[:-1], Ebins[1:])
-    nvec_Eee_er = gausInt_fast(Eee_er, SigmaEee_er, Ebins)
-    #ER spectrum
-    n_Eee_er = np.sum(nvec_Eee_er,0)
-    
-
+        
     ###############
     #Vbias Smearing
     ###############
     #Currently only for studying systematic uncertainties, smearing model is an over-estimation
     #See EPot_Model.ipynb
-    expdelta_kernel=expdelta_int(Ebin_ctr[:,np.newaxis],fpeak,4.20823831,Ebins)
-    
-    #Smear spectrum using resolution function
-    #NR 
-    n_Eee_nr_smeared_vec = n_Eee_nr[:,np.newaxis]*expdelta_kernel
-    n_Eee_nr = np.sum(n_Eee_nr_smeared_vec,0)
+    if fpeak<1.0:
+        #Smear spectrum using resolution function
+        expdelta_kernel=expdelta_int(Ebin_ctr[:,np.newaxis],fpeak,4.20823831,Ebins)
+        n_Eee = np.sum(n_Eee[:,np.newaxis]*expdelta_kernel,0)
 
-    #ER
-    n_Eee_er_smeared_vec = n_Eee_er[:,np.newaxis]*expdelta_kernel
-    n_Eee_er = np.sum(n_Eee_er_smeared_vec,0)
-
-    #(n,gamma)
-    n_Eee_ng_smeared_vec = n_Eee_ng[:,np.newaxis]*expdelta_kernel
-    n_Eee_ng = np.sum(n_Eee_ng_smeared_vec,0)
     
     ###############
     #Trigger Efficiency
     ###############
-    tEff=eff.trigEff(Ebin_ctr)
-    n_Eee_nr = n_Eee_nr*tEff
-    n_Eee_er = n_Eee_er*tEff
-    n_Eee_ng  = n_Eee_ng*tEff
+    #Calculated using true energies, before detector resolution effects
+    n_Eee*=eff.trigEff(Ebin_ctr)
 
     ###############
     #Detector Resolution
     ###############
     if doDetRes:
-        #Calc gaus kernels once and reuse them for each broadcast
-        #gaus_kernel = gausInt(Ebin_ctr[:,np.newaxis], sigma_ee(Ebin_ctr[:,np.newaxis],sigma0,B_1,A), Ebins[:-1], Ebins[1:])
-        gaus_kernel = gausInt_fast(Ebin_ctr[:,np.newaxis], sigma_ee(Ebin_ctr[:,np.newaxis],sigma0,B_1,A), Ebins)
-        
         #Smear spectrum using resolution function
-        #NR 
-        n_Eee_nr_smeared_vec = n_Eee_nr[:,np.newaxis]*gaus_kernel
-        n_Eee_nr = np.sum(n_Eee_nr_smeared_vec,0)
-        
-        #ER
-        n_Eee_er_smeared_vec = n_Eee_er[:,np.newaxis]*gaus_kernel
-        n_Eee_er = np.sum(n_Eee_er_smeared_vec,0)
+        gaus_kernel = gausInt_fast(Ebin_ctr[:,np.newaxis], sigma_ee(Ebin_ctr[:,np.newaxis],sigma0,B_1,A), Ebins)
+        n_Eee = np.sum(n_Eee[:,np.newaxis]*gaus_kernel,0)
 
-        #(n,gamma)
-        n_Eee_ng_smeared_vec = n_Eee_ng[:,np.newaxis]*gaus_kernel
-        n_Eee_ng = np.sum(n_Eee_ng_smeared_vec,0)
     
     ###############
     #Efficiencies
     ###############
-    
     #Analysis cut efficiencies
-    eff_cuts = eff.cutEff(Ebin_ctr)
+    n_Eee*=eff.cutEff(Ebin_ctr)*scale
+
+    return n_Eee
+
+###########################################################################
+#Apply yield, resolution, efficiencies etc. to simulated composite NR hit data to get an average spectrum
+##########################
+#NOTE: This is for composite NR's like (n,gamma)
+##########################
+#
+#Ebins: Bin edges in [eV]
+#Evec: Array of hit Energy vectors
+#dEvec: Array of hit deposited Energy vectors
+#Yield: Either a constant or a Yield object with a .calc method as defined in R68_yield.py
+#F: Fano factor
+#scale: Scaling of spectrum 
+#doDetRes: whether to apply detector resolution function
+#fpeak: Vbias smearing effect parameter. Fraction of events which are NOT smeared. (1.0=no smearing) See EPot_Model.ipynb
+#
+#Returns: n_Eee: The binned spectra of events in units of [counts/bin]
+#
+def buildAvgSimSpectrum_ee_composite(Ebins, Evec, dEvec, Yield, F, scale, doDetRes=True, fpeak=1.0):
+
+    V=const.V
+    G_NTL=const.G_NTL
+    eps=const.eps
+    F_ER=const.F
     
-    n_Eee_nr = n_Eee_nr*eff_cuts*scale_g4
-    n_Eee_er = n_Eee_er*eff_cuts*scale_g4
-    n_Eee_ng = n_Eee_ng*eff_cuts*scale_ng
+    #Params from Matt's Bkg resolution fit:
+    #https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_panda:calibration#resolution_versus_energy
+    sigma0=const.sigma0 #eV 
+    B=const.B #This includes FANO
+    #B_1=B-F*eps #Actually only true for V->inf (http://www.hep.umn.edu/cdms/cdms_restricted/K100/analysis/Peak_Widths.pdf)
+    B_1=B-F_ER*V**2/eps/(1+V/eps)**2
+    A=const.A
+
+    ###############
+    #Binning
+    ###############
+    Ebin_ctr = (Ebins[:-1]+Ebins[1:])/2
+
+    ###############
+    #Yield, Fano
+    ###############
     
-    return (n_Eee_nr, n_Eee_er, n_Eee_ng)
+    #Ionization energy available in each step
+    if isinstance(Yield,(float,int)):
+        Evec_eion = Evec*Yield*Evec - (Evec-dEvec)*Yield*(Evec-dEvec)
+    else:
+        Evec_eion = Evec*Yield.calc(Evec) - (Evec-dEvec)*Yield.calc(Evec-dEvec)
+
+    #Electon-equivalent
+    EeeVec = (dEvec + Evec_eion*V/eps) / G_NTL
+    #Fano resolution in eVee
+    #TODO: This is not quite correct if dE/E<<1, but may be close enough since that's rare?
+    SigmaEeeSqVec = Evec_eion*(V**2)*F/eps/(G_NTL**2)
+    
+    #energy==0 (no hit) may still generate Yield!=0, take care of that here
+    SigmaEeeSqVec[Evec_eion<=0]=0.0
+    
+    #Sum hits assuming they're uncorrelated and reshape so we can broadcast against bin centers
+    Eee=np.sum(EeeVec,1)[:,np.newaxis]
+    SigmaEee = np.sqrt(np.sum(SigmaEeeSqVec,1))[:,np.newaxis]
+    
+    #Weighted spectra of Eee energies measured
+    nvec_Eee = gausInt_fast(Eee, SigmaEee, Ebins)
+    #Spectrum
+    n_Eee = np.sum(nvec_Eee,0)
+
+        
+    ###############
+    #Vbias Smearing
+    ###############
+    #Currently only for studying systematic uncertainties, smearing model is an over-estimation
+    #See EPot_Model.ipynb
+    if fpeak<1.0:
+        #Smear spectrum using resolution function
+        expdelta_kernel=expdelta_int(Ebin_ctr[:,np.newaxis],fpeak,4.20823831,Ebins)
+        n_Eee = np.sum(n_Eee[:,np.newaxis]*expdelta_kernel,0)
+
+    
+    ###############
+    #Trigger Efficiency
+    ###############
+    #Calculated using true energies, before detector resolution effects
+    n_Eee*=eff.trigEff(Ebin_ctr)
+
+    ###############
+    #Detector Resolution
+    ###############
+    if doDetRes:
+        #Smear spectrum using resolution function
+        gaus_kernel = gausInt_fast(Ebin_ctr[:,np.newaxis], sigma_ee(Ebin_ctr[:,np.newaxis],sigma0,B_1,A), Ebins)
+        n_Eee = np.sum(n_Eee[:,np.newaxis]*gaus_kernel,0)
+
+    
+    ###############
+    #Efficiencies
+    ###############
+    #Analysis cut efficiencies
+    n_Eee*=eff.cutEff(Ebin_ctr)*scale
+
+    return n_Eee
 
 
 ###########################################################################
@@ -518,15 +564,10 @@ def gausInt(mu, sigma, xlow, xhi):
 #Faster implementation of gausInt
 #Uses lookup table for erf and smarter broadcasting steps
 #Gives about 2x speed improvement
-#mu: gaussian means. Shape should be (N,1)
-#sigma: gaussian widths. Shape should be (N,1). Should all be sigma>=0
+#mu: gaussian means. Should be float or shape == (N,1)
+#sigma: gaussian widths. Should be float or shape == (N,1). Should all be sigma>=0
 #bins: bin edges. Shape should be (M+1,)
-def gausInt_fast(mu, sigma, bins):
-    #Lookup table for erf
-    x = np.linspace(-3, 3, 1001)    #There are better sampling points, but this is sufficient to ~0.001%
-    y = [erf(_) for _ in x ]
-    erf_tab = lambda z : np.interp(z, x, y, left=-1,right=1)
-    
+def gausInt_fast(mu, sigma, bins):    
     #Precalculate these ratios
     #a=mu/np.sqrt(2)/sigma
     #b=bins/np.sqrt(2)/sigma
@@ -534,29 +575,47 @@ def gausInt_fast(mu, sigma, bins):
     #return np.where(sigma>0,0.5*erf_tab(a-b[:,:-1])-0.5*erf_tab(a-b[:,1:]), np.histogram(mu,bins)[0])
     #return np.where(sigma>0,0.5*erf_tab(a-b[:,:-1])-0.5*erf_tab(a-b[:,1:]), 1.0*((mu>bins[:-1]) & (mu<bins[1:])))
     
-    ###Avoid divide by 0
-    #Allocate the output array
-    #Assumes shapes described above
-    N=mu.shape[0]
-    M=bins.shape[0]-1
-    result=np.zeros((N,M))
-    
-    #Where is sigma zero?
-    sig0=(np.argwhere(sigma.reshape((-1))==0)).reshape((-1))
-    signz=(np.argwhere(sigma.reshape((-1))!=0)).reshape((-1))
-    
-    #Handle sigma==0
-    result[sig0]=1.0*((mu[sig0]>bins[:-1]) & (mu[sig0]<bins[1:]))
-    
-    #Handle sigma>0
-    #Shouldn't be any sigma<0...
-    a=mu[signz]/np.sqrt(2)/sigma[signz]
-    b=bins/np.sqrt(2)/sigma[signz]
-    
-    result[signz]=0.5*erf_tab(a-b[:,:-1])-0.5*erf_tab(a-b[:,1:])
-    
-    return result
+    if mu.ndim==0:
+        
+        if sigma==0:
+            return 1.0*((mu>bins[:-1]) & (mu<bins[1:]))
+        else:
+            erf_res=erf_tab((mu-bins)/np.sqrt(2)/sigma)
+            return -0.5*np.diff(erf_res)
+        
+    elif mu.ndim==2:
+        ###Avoid divide by 0
+        #Preallocate the output array
+        #Assumes shapes described above
+        N=mu.shape[0]
+        M=bins.shape[0]-1
+        result=np.zeros((N,M))
 
+        #Where is sigma zero?
+        sig0=(np.argwhere(sigma.reshape((-1))==0)).reshape((-1))
+        signz=(np.argwhere(sigma.reshape((-1))!=0)).reshape((-1))
+
+        #Handle sigma==0
+        result[sig0]=1.0*((mu[sig0]>bins[:-1]) & (mu[sig0]<bins[1:]))
+
+        #Handle sigma>0
+        #Shouldn't be any sigma<0...
+        erff=erf_tab(mu[signz]/np.sqrt(2)/sigma[signz]-bins/np.sqrt(2)/sigma[signz])
+
+        result[signz]=-0.5*np.diff(erff)
+
+        return result
+    else:
+        print('Error in R68_spec_tools.gausInt_fast. Mu has wrong dimensionality: ',mu.ndim)
+        return None
+
+    
+#Lookup table for erf
+x_erf = np.linspace(-3, 3, 1001)    #There are better sampling points, but this is sufficient to ~0.001%
+y_erf = [erf(_) for _ in x_erf ]
+def erf_tab(z):
+    return np.interp(z, x_erf, y_erf, left=-1,right=1)
+    
 ###########################################################################
 #Smearing function for fringing field effect
 
@@ -582,7 +641,10 @@ def expdelta_int(x0,fpeak,B, bins):
 
 ###########################################################################
 #Plot of individual and combined simulated spectra and observed spectrum
-def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, xrange=(0,1e3), yrange=(0,1e-2), yscale='linear', thresh=None, axis=None, wLeg=True):
+#If N_nr, N_er, N_ng are more than 1-d, then the first row is assumed to be 
+#  the best-fit spectrum, the second is the upper 1-sigma spectrum and the last is the lower 1-sigma spectrum.
+#  Then we plot the best fit and shade between the upper and lower limits.
+def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, xrange=(0,1e3), yrange=(0,1e-2), yscale='linear', thresh=None, axis=None, wLeg=True, wResidual=False, yrange_res=(-1e-3,1e-3)):
     
     #######################
     #Plotting styles
@@ -607,43 +669,98 @@ def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, xrange=(0,1e3), yrang
     
     if axis is None:
         fig_w=9
-        fig,axis = plt.subplots(1,1,figsize=(fig_w, fig_w*(.75)), sharex=True)
+        if wResidual:
+            #fig,axis = plt.subplots(1,2,figsize=(fig_w, 2*fig_w*(.75)), sharex=True)
+            #TODO Make Residual narrow
+            fig = plt.figure(figsize=(fig_w, 1.5*fig_w*(.75)))
+            gs = fig.add_gridspec(16, 1)
+            ax0 = fig.add_subplot(gs[:10, :])
+            ax1 = fig.add_subplot(gs[12:, :])
+            axis=[ax0,ax1]
+        else:
+            fig,axis = plt.subplots(1,1,figsize=(fig_w, fig_w*(.75)))
+    else:
+        if wResidual:
+            print()#TODO Make sure axis is an array with 2 axis entries
 
+    assert N_nr.shape == N_er.shape == N_ng.shape
+    if N_nr.ndim==2 and N_nr.shape[0]==3:
+        dolimits=True
+        #We've got a median and 2 limit spectra
+        N_nr_best=N_nr[0]
+        N_er_best=N_er[0]
+        N_ng_best=N_ng[0]
+        
+        N_nr_up=N_nr[1]
+        N_er_up=N_er[1]
+        N_ng_up=N_ng[1]
+        
+        N_nr_down=N_nr[2]
+        N_er_down=N_er[2]
+        N_ng_down=N_ng[2]
+        
+    else:
+        #Assume it's just a single best fit spectrum
+        dolimits=False
+        N_nr_best=N_nr
+        N_er_best=N_er
+        N_ng_best=N_ng
+        
+    #Plot Fit
     dE = E_bins[1]-E_bins[0]
-    
     Ec = (E_bins[:-1] + E_bins[1:]) / 2
     
-    axis.step(Ec,N_nr, where='mid',color='k', linestyle='-', \
+    if wResidual:
+        ax=axis[0]
+    else:
+        ax=axis
+        
+    ax.step(Ec,N_nr_best, where='mid',color='k', linestyle='-', \
              label='NR, no Capture', linewidth=2)
-
-    axis.step(Ec,N_er, where='mid',color='r', linestyle='-', \
+    
+    ax.step(Ec,N_er_best, where='mid',color='r', linestyle='-', \
              label='ER, no Capture', linewidth=2)
 
-    axis.step(Ec,N_ng, where='mid',color='b', linestyle='-', \
+    ax.step(Ec,N_ng_best, where='mid',color='b', linestyle='-', \
              label='(n,gamma)', linewidth=2)
 
-    axis.step(Ec,N_nr+N_er+N_ng, where='mid',color='g', linestyle='-', \
+    ax.step(Ec,N_nr_best+N_er_best+N_ng_best, where='mid',color='g', linestyle='-', \
              label='All Sims', linewidth=2)
 
-    axis.errorbar(Ec,N_meas,yerr=[dN_meas,dN_meas], marker='o', markersize=6, \
+    if dolimits:
+        ax.fill_between(Ec,N_nr_down,N_nr_up, step='mid', color='k', alpha=0.5)
+        ax.fill_between(Ec,N_er_down,N_er_up, step='mid', color='r', alpha=0.5)
+        ax.fill_between(Ec,N_ng_down,N_ng_up, step='mid', color='b', alpha=0.5)
+        ax.fill_between(Ec,N_nr_down+N_er_down+N_ng_down,N_nr_up+N_er_up+N_ng_up, step='mid', color='g', alpha=0.5)
+    
+    #Plot Data
+    ax.errorbar(Ec,N_meas,yerr=[dN_meas,dN_meas], marker='o', markersize=6, \
                  ecolor='k',color='k', linestyle='none', label='Data-Bkg', linewidth=2)
     
     if thresh is not None:
-        axis.axvline(thresh, color='m', linestyle='--', linewidth=2, label='Threshold')
+        ax.axvline(thresh, color='m', linestyle='--', linewidth=2, label='Threshold')
     
-    axis.set_yscale(yscale)
-    axis.set_xlim(*xrange)
-    axis.set_ylim(*yrange)
-    axis.set_xlabel('total deposited energy [eV$_{\\mathrm{ee}}$]',**axis_font)
+    #Plot Residual
+    if wResidual:
+        axis[1].step(Ec,np.zeros_like(Ec), where='mid',color='g', linestyle='-', linewidth=2)
+        axis[1].errorbar(Ec,N_meas-(N_nr_best+N_er_best+N_ng_best),yerr=[dN_meas,dN_meas], marker='o', markersize=6, \
+                 ecolor='k',color='k', linestyle='none', linewidth=2)
+        axis[1].set_ylim(*yrange_res)
+        axis[1].set_xlim(*xrange)
+    
+    ax.set_yscale(yscale)
+    ax.set_xlim(*xrange)
+    ax.set_ylim(*yrange)
+    ax.set_xlabel('total deposited energy [eV$_{\\mathrm{ee}}$]',**axis_font)
     #axis.set_ylabel('counts',**axis_font)
-    axis.set_ylabel('Events/bin/s',**axis_font)
-    axis.grid(True)
-    axis.yaxis.grid(True,which='minor',linestyle='--')
+    ax.set_ylabel('Events/bin/s',**axis_font)
+    ax.grid(True)
+    ax.yaxis.grid(True,which='minor',linestyle='--')
     if wLeg:
-        axis.legend(loc=1,prop={'size':22})
+        ax.legend(loc=1,prop={'size':22})
 
-    for ax in ['top','bottom','left','right']:
-      axis.spines[ax].set_linewidth(2)
+    for side in ['top','bottom','left','right']:
+      ax.spines[side].set_linewidth(2)
 
     plt.tight_layout()
     
