@@ -1,9 +1,9 @@
 #Detector and physical constants for R68 analysis
 
 #Detector constants
-V = 125 #R68 bias voltage
+V = 125.0 #R68 bias voltage
 eps = 3.8 #eV for silicon
-G_NTL = (1+(V/eps)) #NTL gain
+G_NTL = (1.+(V/eps)) #NTL gain
 F = 0.1161 #silicon value taken from https://www.sciencedirect.com/science/article/pii/S0168900297009650
 
 #Resolution model
