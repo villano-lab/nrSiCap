@@ -5,6 +5,119 @@ import constants as const
 import R68_efficiencies as eff
 from scipy.special import erf
 import numpy as np
+import R68_load
+
+###########################################################################
+#Do background subtraction of measured data
+#
+#meas: dictionary of measured events. Should be the output of R68_load.load_measured
+#Ebins: [eVee] Histogram energy bins. 1-d, length M+1
+#Efit_min: [eVee] Minimum energy over which the fit will be performed (min analysis threshold)
+#Efit_max: [eVee] Maximum energy over which the fit will be performed (max analysis threshold)
+#doEffsyst: Include efficiency uncertainties (from write and cut efficiencies)
+#doLERsyst: Include systematic uncertainty from varying the LowEnergyRate cut
+#
+#Returns: (N_meas, dN_meas) The background-subtracted measured spectrum and its uncertainty.
+# Units are in counts/bin, NOT rate.
+# N_meas is bin counts. 1-d, length M
+# dN_meas is (high,low) uncertainties, 2-d, each length M.
+# Uncertatinty always includes Poisson uncertainties of Bkg and PuBe count rates at least. 
+# More effects can be enabled with the doEffsyst and doLERsyst tags
+###########################################################################
+def doBkgSub(meas, Ebins, Efit_min, Efit_max, doEffsyst=True, doLERsyst=True):
+    Ebins_ctr=(Ebins[:-1]+Ebins[1:])/2
+    
+    N_meas_PuBe,_ = np.histogram(meas['PuBe']['E'],bins=Ebins)
+    N_meas_Bkg,_ = np.histogram(meas['Bkg']['E'],bins=Ebins)
+    #Count uncertainties are Poisson
+    dN_meas_PuBe_Pois=np.sqrt(N_meas_PuBe)
+    dN_meas_Bkg_Pois=np.sqrt(N_meas_Bkg)
+
+    if not doEffsyst:
+        #Scaling factors
+        tlive_ratio=meas['PuBe']['tlive']/meas['Bkg']['tlive']
+        writeEff_ratio=eff.eff_write/eff.eff_write_bkg
+
+        #Divide by 0s will happen here...
+        cutEff_ratio=eff.cutEffFit(Ebins_ctr)/eff.cutEffFit_bkg(Ebins_ctr)
+
+        ratio=tlive_ratio*writeEff_ratio*cutEff_ratio
+
+        #Make sure any divide by 0s happened below threshold
+        spec_bounds=(np.digitize(Efit_min,Ebins)-1,np.digitize(Efit_max,Ebins)-1)
+        if not np.all(np.isfinite(ratio[slice(*spec_bounds)])):
+            print('Error in R68_spec_tools.doBkgSub: Bad background scaling ratio in fit range.')
+            return None
+
+        #Bkg-subtracted measured PuBe signal
+        N_bkg_scaled=N_meas_Bkg*ratio
+        dN_bkg_scaled=dN_meas_Bkg_Pois*ratio
+
+        N_meas = N_meas_PuBe - N_bkg_scaled
+        dN_meas = np.sqrt( dN_meas_PuBe_Pois**2 + dN_bkg_scaled**2 ) # 1-d since all errors are symmetric here when using the conservative cut eff fits
+    else:
+        #Include uncertainty from efficiencies
+        dN_meas_PuBe = N_meas_PuBe*np.sqrt( (dN_meas_PuBe_Pois/N_meas_PuBe)**2 +\
+                                           (eff.deff_write/eff.eff_write)**2 +\
+                                           (eff.dcutEffFit(Ebins_ctr)/eff.cutEffFit(Ebins_ctr))**2)
+        dN_meas_Bkg = N_meas_Bkg*np.sqrt( (dN_meas_Bkg_Pois/N_meas_Bkg)**2 +\
+                                         (eff.deff_write_bkg/eff.eff_write_bkg)**2 +\
+                                         (eff.dcutEffFit_bkg(Ebins_ctr)/eff.cutEffFit_bkg(Ebins_ctr))**2)
+
+        #Scaling factors
+        tlive_ratio=meas['PuBe']['tlive']/meas['Bkg']['tlive']
+        writeEff_ratio=eff.eff_write/eff.eff_write_bkg
+        dwriteEff_ratio=writeEff_ratio*np.sqrt( (eff.deff_write/eff.eff_write)**2 +\
+                                               (eff.deff_write_bkg/eff.eff_write_bkg)**2 )
+        #Divide by 0s will happen here...
+        cutEff_ratio=eff.cutEffFit(Ebins_ctr)/eff.cutEffFit_bkg(Ebins_ctr)
+        dcutEff_ratio = cutEff_ratio*np.sqrt( (eff.dcutEffFit(Ebins_ctr)/eff.cutEffFit(Ebins_ctr))**2 +\
+                                             (eff.dcutEffFit_bkg(Ebins_ctr)/eff.cutEffFit_bkg(Ebins_ctr))**2 )
+
+        ratio=tlive_ratio*writeEff_ratio*cutEff_ratio
+        dratio=ratio*np.sqrt( (dwriteEff_ratio/writeEff_ratio)**2 +(dcutEff_ratio/cutEff_ratio)**2 )
+
+        #Make sure any divide by 0s happened below threshold
+        spec_bounds=(np.digitize(Efit_min,Ebins)-1,np.digitize(Efit_max,Ebins)-1)
+        if (not np.all(np.isfinite(ratio[slice(*spec_bounds)]))) or (not np.all(np.isfinite(dratio[slice(*spec_bounds)]))):
+            print('Error in R68_spec_tools.doBkgSub: Bad background scaling ratio in fit range.')
+            return None
+
+        #Bkg-subtracted measured PuBe signal
+        N_bkg_scaled=N_meas_Bkg*ratio
+        dN_bkg_scaled=N_bkg_scaled*np.sqrt( (dN_meas_Bkg/N_meas_Bkg)**2 + (dratio/ratio)**2 )
+
+        N_meas = N_meas_PuBe - N_bkg_scaled
+        dN_meas = np.sqrt( dN_meas_PuBe**2 + dN_bkg_scaled**2 ) # 1-d since all errors are symmetric here when using the conservative cut eff fits
+    
+    if not doLERsyst:
+        #We're done
+        return (N_meas, (dN_meas, dN_meas))
+    else:
+        #Get the extreme values from the LERate cut
+        meas_hi=R68_load.load_measured(cLERate='Hi',verbose=False)
+        meas_low=R68_load.load_measured(cLERate='Low',verbose=False)
+        N_meas_PuBe_hi,_ = np.histogram(meas_hi['PuBe']['E'],bins=Ebins)
+        N_meas_PuBe_low,_ = np.histogram(meas_low['PuBe']['E'],bins=Ebins)
+        #Count uncertainties are Poisson
+        dN_meas_PuBe_Pois_hi=np.sqrt(N_meas_PuBe_hi)
+        dN_meas_PuBe_Pois_low=np.sqrt(N_meas_PuBe_low)
+
+        #Include uncertainty from efficiencies
+        dN_meas_PuBe_hi = N_meas_PuBe_hi*np.sqrt( (dN_meas_PuBe_Pois_hi/N_meas_PuBe_hi)**2 +\
+                                                 (eff.deff_write/eff.eff_write)**2 +\
+                                                 (eff.dcutEffFit(Ebins_ctr)/eff.cutEffFit(Ebins_ctr))**2)
+        dN_meas_PuBe_low = N_meas_PuBe_low*np.sqrt( (dN_meas_PuBe_Pois_low/N_meas_PuBe_low)**2 +\
+                                                   (eff.deff_write/eff.eff_write)**2 +\
+                                                   (eff.dcutEffFit(Ebins_ctr)/eff.cutEffFit(Ebins_ctr))**2)
+        #Bkg scaling factors same as above
+        N_meas_hi = N_meas_PuBe_hi - N_bkg_scaled
+        N_meas_low = N_meas_PuBe_low - N_bkg_scaled
+        dN_meas_hi = np.sqrt( dN_meas_PuBe_hi**2 + dN_bkg_scaled**2 ) #All errors are symmetric here when using the conservative cut eff fits
+        dN_meas_low = np.sqrt( dN_meas_PuBe_low**2 + dN_bkg_scaled**2 )
+        
+        #We'll take the Nominal N_meas and set the +/- sigmas to be the extreme values from the cut systematics
+        return (N_meas, ( (N_meas_hi+dN_meas_hi)-N_meas, N_meas-(N_meas_low-dN_meas_low) ))
 
 ###########################################################################
 #Apply yield, resolution, efficiencies etc. to simulated data to get an instance of a simulated E_ee spectrum
@@ -23,6 +136,9 @@ import numpy as np
 #
 #Returns: (n_Eee_nr, n_Eee_er, n_Eee_ng) The binned spectra of NR, ER, and (n,gamma) events in units of [counts/bin]
 
+############################################################################################################
+############# DEFUNCT! Use buildAvgSimSpectrum_ee or buildAvgSimSpectrum_ee_composite instead! #############
+############################################################################################################
 def buildSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_NR, scale_g4=1, scale_ng=1, doDetRes=True, seed=1):
     
     V=const.V
@@ -127,6 +243,9 @@ def buildSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_NR, 
 #Returns: (n_Eee_nr, n_Eee_er, n_Eee_ng) The binned spectra of NR, ER, and (n,gamma) events in units of [counts/bin]
 #
 #TODO: -Handle low energy Neh consistent with model used in buildSpectra
+############################################################################################################
+############# DEFUNCT! Use buildAvgSimSpectrum_ee or buildAvgSimSpectrum_ee_composite instead! #############
+############################################################################################################
 def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_NR, scale_g4=1, scale_ng=1, doDetRes=True, fpeak=0.753):
 
     V=const.V
@@ -369,7 +488,7 @@ def buildAvgSimSpectrum_ee(Ebins, Evec, Yield, F, scale, doDetRes=True, fpeak=1.
     ###############
     #Trigger Efficiency
     ###############
-    #Calculated using true energies, before detector resolution effects
+    #Function of calculated using true energies, before detector resolution effects
     n_Eee*=eff.trigEff(Ebin_ctr)
 
     ###############
@@ -384,8 +503,8 @@ def buildAvgSimSpectrum_ee(Ebins, Evec, Yield, F, scale, doDetRes=True, fpeak=1.
     ###############
     #Efficiencies
     ###############
-    #Analysis cut efficiencies
-    n_Eee*=eff.cutEff(Ebin_ctr)*scale
+    #Use the fitted, smoothed total cut efficiency curve
+    n_Eee*=eff.cutEffFit(Ebin_ctr)*scale
 
     return n_Eee
 
@@ -469,7 +588,7 @@ def buildAvgSimSpectrum_ee_composite(Ebins, Evec, dEvec, Yield, F, scale, doDetR
     ###############
     #Trigger Efficiency
     ###############
-    #Calculated using true energies, before detector resolution effects
+    #Function of calculated using true energies, before detector resolution effects
     n_Eee*=eff.trigEff(Ebin_ctr)
 
     ###############
@@ -485,7 +604,8 @@ def buildAvgSimSpectrum_ee_composite(Ebins, Evec, dEvec, Yield, F, scale, doDetR
     #Efficiencies
     ###############
     #Analysis cut efficiencies
-    n_Eee*=eff.cutEff(Ebin_ctr)*scale
+    #Use the fitted, smoothed total cut efficiency curve
+    n_Eee*=eff.cutEffFit(Ebin_ctr)*scale
 
     return n_Eee
 
@@ -642,9 +762,11 @@ def expdelta_int(x0,fpeak,B, bins):
 ###########################################################################
 #Plot of individual and combined simulated spectra and observed spectrum
 #If N_nr, N_er, N_ng are more than 1-d, then the first row is assumed to be 
-#  the best-fit spectrum, the second is the upper 1-sigma spectrum and the last is the lower 1-sigma spectrum.
-#  Then we plot the best fit and shade between the upper and lower limits.
-def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, xrange=(0,1e3), yrange=(0,1e-2), yscale='linear', thresh=None, axis=None, wLeg=True, wResidual=False, yrange_res=(-1e-3,1e-3)):
+#  the best-fit spectrum, the second is the upper 1-sigma line and the last is the lower 1-sigma line.
+#  Then we plot the best fit and shade between the upper and lower lines.
+# For backwards compatibility with some notebooks, if N_tot is not included, it, 
+#  and the corresponding uncertainty, are calculated from the sum of N_nr, N_er, and N_ng
+def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, N_tot=None, xrange=(0,1e3), yrange=(0,1e-2), yscale='linear', thresh=None, axis=None, wLeg=True, wResidual=False, yrange_res=(-1e-3,1e-3)):
     
     #######################
     #Plotting styles
@@ -699,12 +821,28 @@ def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, xrange=(0,1e3), yrang
         N_er_down=N_er[2]
         N_ng_down=N_ng[2]
         
+        if N_tot is None:
+            N_tot_best=N_nr_best+N_er_best+N_ng_best
+            #TODO: What's the right way to combine these uncertainties?
+            #Hard to say at this point if we don't know how they're correlated
+            N_tot_up=N_nr_up+N_er_up+N_ng_up
+            N_tot_down=N_nr_down+N_er_down+N_ng_down
+        else:
+            N_tot_best=N_tot[0]
+            N_tot_up=N_tot[1]
+            N_tot_down=N_tot[2]
+        
     else:
         #Assume it's just a single best fit spectrum
         dolimits=False
         N_nr_best=N_nr
         N_er_best=N_er
         N_ng_best=N_ng
+        
+        if N_tot is None:
+            N_tot_best=N_nr_best+N_er_best+N_ng_best
+        else:
+            N_tot_best=N_tot
         
     #Plot Fit
     dE = E_bins[1]-E_bins[0]
@@ -724,17 +862,26 @@ def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, xrange=(0,1e3), yrang
     ax.step(Ec,N_ng_best, where='mid',color='b', linestyle='-', \
              label='(n,gamma)', linewidth=2)
 
-    ax.step(Ec,N_nr_best+N_er_best+N_ng_best, where='mid',color='g', linestyle='-', \
-             label='All Sims', linewidth=2)
+    ax.step(Ec,N_tot_best, where='mid',color='g', linestyle='-',\
+            label='All Sims', linewidth=2)
+
 
     if dolimits:
         ax.fill_between(Ec,N_nr_down,N_nr_up, step='mid', color='k', alpha=0.5)
         ax.fill_between(Ec,N_er_down,N_er_up, step='mid', color='r', alpha=0.5)
         ax.fill_between(Ec,N_ng_down,N_ng_up, step='mid', color='b', alpha=0.5)
-        ax.fill_between(Ec,N_nr_down+N_er_down+N_ng_down,N_nr_up+N_er_up+N_ng_up, step='mid', color='g', alpha=0.5)
+        ax.fill_between(Ec,N_tot_down,N_tot_up, step='mid', color='g', alpha=0.5)
     
     #Plot Data
-    ax.errorbar(Ec,N_meas,yerr=[dN_meas,dN_meas], marker='o', markersize=6, \
+    if np.asarray(dN_meas).ndim==2:
+        #asymmetric
+        dN_meas_hi=dN_meas[0]
+        dN_meas_low=dN_meas[1]
+    else:
+        #symmetric
+        dN_meas_hi=dN_meas
+        dN_meas_low=dN_meas
+    ax.errorbar(Ec,N_meas,yerr=[dN_meas_hi,dN_meas_low], marker='o', markersize=6, \
                  ecolor='k',color='k', linestyle='none', label='Data-Bkg', linewidth=2)
     
     if thresh is not None:
@@ -743,7 +890,7 @@ def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, xrange=(0,1e3), yrang
     #Plot Residual
     if wResidual:
         axis[1].step(Ec,np.zeros_like(Ec), where='mid',color='g', linestyle='-', linewidth=2)
-        axis[1].errorbar(Ec,N_meas-(N_nr_best+N_er_best+N_ng_best),yerr=[dN_meas,dN_meas], marker='o', markersize=6, \
+        axis[1].errorbar(Ec,N_meas-N_tot_best,yerr=[dN_meas_hi,dN_meas_low], marker='o', markersize=6, \
                  ecolor='k',color='k', linestyle='none', linewidth=2)
         axis[1].set_ylim(*yrange_res)
         axis[1].set_xlim(*xrange)

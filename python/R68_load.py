@@ -3,28 +3,36 @@ import numpy as np
 
 ############################################################################
 #Load measured R68 PuBe and Bkg data
-def load_measured():
-    print('Loading Measured Data...')
-    fpube = open('data/r68_n125_PuBe_cgood_final_PTOFkeV_2keV_scan_fmt.txt')
-    fbknd = open('data/r68_n125_bkg_cgood_final_PTOFkeV_2keV_scan_fmt.txt')
-
-    dE = np.asarray([x.split() for x in fpube.readlines()],dtype=np.float)
-    dbE = np.asarray([x.split() for x in fbknd.readlines()],dtype=np.float)
-
-    fpube.close()
-    fbknd.close()
+#cLERate: Type of Low Energy Rate cut used in analysis. 
+# Can be one of {'Low','Nom','Hi'} for the low, nominal, or high cut values.
+# This only affects PuBe data, as the Bkg was not changed by this cut.
+def load_measured(cLERate='Nom',verbose=True):
+    if verbose:
+        print('Loading Measured Data...')
+    #Only low energy rate cut
+    #with open('data/r68_n125_PuBe_cgood_final_PTOFkeV_2keV_scan_fmt.txt') as fpube:
+    
+    #Extended energy rate cut, nominal burst cut values
+    with open(f'data/r68_n125_PuBe_cgood_cRate{cLERate}_PTOFkeV_2keV_scan_fmt.txt') as fpube:
+        dE = np.asarray([x.split() for x in fpube.readlines()],dtype=np.float)
+        
+    with open('data/r68_n125_bkg_cgood_final_PTOFkeV_2keV_scan_fmt.txt') as fbknd:
+        dbE = np.asarray([x.split() for x in fbknd.readlines()],dtype=np.float)
 
     #Measured event energies in [eV] for PuBe (dE) and background (dbE)
     E_PuBe = dE[:,1]*1e3
     E_Bkg = dbE[:,1]*1e3
-    print(np.shape(E_PuBe))
-    print(np.shape(E_Bkg))
+    if verbose:
+        print('PuBe events: ', np.shape(E_PuBe))
+        print('Bkg events: ', np.shape(E_Bkg))
 
     #Measured data live time estimates
     #https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_rateandlivetime#iii_read_efficiency
-    tlive_PuBe = 97.9*3600 #[s]
+    tlive_PuBe = 97.9*3600 #[s] This is the raw livetime, without write efficiency effects
+    
     #tlive_bkg = tlive_PuBe*193/640 # Naive scaling by number of series
-    tlive_bkg = 24.1*3600 #[s]
+    #tlive_bkg = 24.1*3600 #[s]
+    tlive_bkg = 29.5*3600 #[s] Use the raw livetime, without applying write efficiency effects
     
     return {"Bkg":{"E":E_Bkg, "tlive":tlive_bkg},"PuBe":{"E":E_PuBe, "tlive":tlive_PuBe}}
 
