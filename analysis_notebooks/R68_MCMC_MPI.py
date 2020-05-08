@@ -2,7 +2,7 @@
 #It is roughly a script version of R68_MCMC(_faster).ipynb
 
 #Run using command like:
-#mpiexec --hostfile /home/mast/MPI/mpi_hostfile -n 24 python R68_MCMC_MPI.py > out.txt 2>&1 &
+#mpiexec --hostfile /home/mastx027/MPI/mpi_hostfile -n 24 python R68_MCMC_MPI.py > out.txt 2>&1 &
 #Make sure you're in the nr_fano conda environment
 
 ################################################################################
@@ -47,23 +47,26 @@ os.environ["OMP_NUM_THREADS"] = "1"
 #Fit Settings
 ################################################################################
 #Construct a dictionary to store all the MCMC fit parameters and results
+        ########################## Data Settings ##########################
 mcmc_data={'g4_load_frac':0.1,
           'cap_load_frac':0.1,
           'cap_sim_file':'/data/chocula/villaa/cascadeSimData/si28_R68_400k.pkl',
           'cap_rcapture':0.161,
-          'Emax': 2000, #[eVee]
-          'Ebins': np.linspace(0,2000,201),
-           'Efit_min':90, #[eVee]
+           ########################## Spectrum Settings ##########################
+          'Emax': 2000, #2000, #[eVee]
+          'Ebins': np.linspace(0,2000,201), #np.linspace(0,2000,201),
+           'Efit_min':50, #[eVee]
            'Efit_max':1750, #[eVee]
-           #'Ymodel':'Lind',
-           #'labels': [r'k', r'$F_{NR}$', r'$scale_{G4}$', r'$scale_{ng}$'],
-           #'theta_bounds': ((0.05,0.3),(0,30),(0.1,10),(0.1,10)),
+           ########################## Yield Model Settings ##########################
+           'Ymodel':'Lind',
+           'labels': [r'k', r'$F_{NR}$', r'$scale_{G4}$', r'$scale_{ng}$'],
+           'theta_bounds': ((0.05,0.3),(0,30),(0.1,10),(0.1,10)),
            #'Ymodel':'Chav',
            #'labels': [r'k', r'$a^{-1}$', r'$F_{NR}$', r'$scale_{G4}$', r'$scale_{ng}$'],
            #'theta_bounds': ((0.05,0.3),(0,1e3),(0,30),(0.1,10),(0.1,10)),
-           'Ymodel':'Sor',
-           'labels': [r'k', r'q', r'$F_{NR}$', r'$scale_{G4}$', r'$scale_{ng}$'],
-           'theta_bounds': ((0.05,0.3),(0,3e-2),(0,30),(0.1,10),(0.1,10)),
+           #'Ymodel':'Sor',
+           #'labels': [r'k', r'q', r'$F_{NR}$', r'$scale_{G4}$', r'$scale_{ng}$'],
+           #'theta_bounds': ((0.05,0.3),(0,3e-2),(0,30),(0.1,10),(0.1,10)),
            #'Ymodel':'AC',
            #'labels': [r'k', r'$\xi$', r'$F_{NR}$', r'$scale_{G4}$', r'$scale_{ng}$'],
            #'theta_bounds': ((0.05,0.3),(0,2e3),(0,30),(0.1,10),(0.1,10)),
@@ -73,12 +76,18 @@ mcmc_data={'g4_load_frac':0.1,
            #'Ymodel':'Shexp',
            #'labels': [r'k', 'Yshelf', 'Ec', 'dE', 'alpha', r'$F_{NR}$', r'$scale_{G4}$', r'$scale_{ng}$'],
            #'theta_bounds': ((0.05,0.3),(0,0.3),(0,1e3),(0,1e3),(0,100),(0,30),(0.1,10),(0.1,10)),
-           'likelihood':'Pois',
+           ########################## Likelihood Settings ##########################
+           'likelihood':'SNorm', #One of {'Pois', 'Norm', 'SNorm'} Only SNorm accepts sigmas, others assume Pois stats
+           ########################## Uncertainty Settings ##########################
            'doDetRes': True,
-           'fpeak':1.0,
+           'fpeak':0.753, #0.753 -- 1.0
+           'cLERate':'Nom',#LowEnergyRate cut level {'Low','Nom','Hi'}
+           'doEffsyst':True, #Include systematics from cut efficiencies (w/o LERate cut uncertatinty)
+           'doLERsyst':False, #Include the systematics from the LERate cut in the measured PDF
+           ########################## MCMC Settings ##########################
            'nwalkers':128,
-           #'ndim':4,
-           'ndim':5,
+           'ndim':4,
+           #'ndim':5,
            #'ndim':8,
            'nstep':5000,
            'guesses':'Uniform', #Can either be uniform or shape (nwalkers, ndim),
@@ -89,41 +98,40 @@ mcmc_data={'g4_load_frac':0.1,
 ################################################################################
 #Load Data
 ################################################################################
-
-#Load the datasets
 import R68_load as r68
-
-meas=r68.load_measured()
-g4=r68.load_G4(load_frac=mcmc_data['g4_load_frac'])
-cap=r68.load_simcap(file=mcmc_data['cap_sim_file'], rcapture=mcmc_data['cap_rcapture'], load_frac=mcmc_data['cap_load_frac'])
-
-#Import yield models
-import R68_yield as Yield
 import R68_spec_tools as spec
-
-#Initialize Yield model
-Y=Yield.Yield('Lind',[0.15])
-
-model=mcmc_data['Ymodel']
-Y=Yield.Yield(model,np.zeros(Y.model_npar[model]))
+#Import likelihood functions
+from likelihoods import *
 
 #Set eVee energy binning
 Emax=mcmc_data['Emax']
 Ebins=mcmc_data['Ebins']
+Ebins_ctr=(Ebins[:-1]+Ebins[1:])/2
 
-#Measured spectra
-N_meas_PuBe,_ = np.histogram(meas['PuBe']['E'],bins=Ebins)
-N_meas_Bkg,_ = np.histogram(meas['Bkg']['E'],bins=Ebins)
+#Set fit range
+E_lim_min=mcmc_data['Efit_min'] #eVee
+E_lim_max=mcmc_data['Efit_max'] #eVee
+spec_bounds=(np.digitize(E_lim_min,Ebins)-1,np.digitize(E_lim_max,Ebins)-1)
+mcmc_data['spec_bounds']=spec_bounds
 
-tlive_PuBe = meas['PuBe']['tlive']
-tlive_Bkg = meas['Bkg']['tlive']
-#We'll scale everything to the PuBe live time and work with counts, not rate, to get the Poisson stats right
+#Measured spectra background subtraction
+#To use the Poisson likelihood, we want to work with PuBe signal counts.
+#So we scale the measured background counts by the appropriate livetime and efficiency factors
+# then subtract from the measured PuBe data counts
+meas=r68.load_measured(cLERate=mcmc_data['cLERate'],verbose=True)
+tlive_PuBe=meas['PuBe']['tlive']
+N_meas,dN_meas=spec.doBkgSub(meas, Ebins, mcmc_data['Efit_min'], mcmc_data['Efit_max'],\
+                             doEffsyst=mcmc_data['doEffsyst'], doLERsyst=mcmc_data['doLERsyst']) #dN returns (high,low)
 
-N_meas_Bkg_scaled = N_meas_Bkg * tlive_PuBe/tlive_Bkg
-#Estimate of counts due to PuBe
-N_meas = N_meas_PuBe - N_meas_Bkg_scaled
+if mcmc_data['likelihood']=='SNorm':
+    #Precalculate split normal likelihood params if we're going to need it
+    SNpars=getSNparsArray(N_meas[slice(*spec_bounds)],dN_meas[0][slice(*spec_bounds)],dN_meas[1][slice(*spec_bounds)])
+    SNpars=SNpars.T
 
-#g4 Simulations
+#Load g4 Simulations
+g4=r68.load_G4(load_frac=mcmc_data['g4_load_frac'])
+cap=r68.load_simcap(file=mcmc_data['cap_sim_file'], rcapture=mcmc_data['cap_rcapture'], load_frac=mcmc_data['cap_load_frac'])
+
 #Trim events that won't figure into the analysis range
 #Trimmed sim data
 Eee_er=np.sum(g4['ER']['E'],axis=1)
@@ -139,54 +147,12 @@ Evec_nr=g4['NR']['E'][Evec_nr_cut]
 N_er = spec.buildAvgSimSpectrum_ee(Ebins=Ebins, Evec=Evec_er, Yield=1.0, F=F, scale=1,\
                                    doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'])    
 
-################################################################################
-#Define likelihood functions
-################################################################################
-from scipy.special import factorial, gamma, loggamma
-
-#Poisson likelihood of measuring k given expected mean of lambda
-def pois_likelihood(k, lamb):
-    return (lamb**k)*np.exp(-lamb)/gamma(k+1.)
-
-#Poisson log-likelihood
-#k: observed counts
-#lamb: expected (model) counts
-def ll_pois(k, lamb):   
-    if np.sum(lamb<=0):
-        return -np.inf
-    
-    return np.sum(k*np.log(lamb) - lamb - loggamma(k+1.))
-
-#Normal log-likelihood, limit of Poisson for large lambda
-#k: observed counts
-#lamb: expected (model) counts
-def ll_norm(k,lamb):
-    if np.sum(lamb<=0):
-        return -np.inf
-    
-    return np.sum(-0.5*np.log(2*np.pi*lamb) - (k-lamb)**2/(2*lamb))
-
-#Log of flat prior functions
-#theta: array of parameter values
-#bounds: array of parameter bounds. shape should be len(theta)x2
-def lp_flat(theta, bounds):
-    #for itheta,ibounds in zip(theta,bounds):
-    #    if not (ibounds[0] < itheta < ibounds[1]):
-    #        return -np.inf
-        
-    #return 0.0
-    
-    if (np.array(bounds)[:,0]<theta).all() and (theta<np.array(bounds)[:,1]).all():
-        return 0.0
-    return -np.inf
-
-#Log of normal prior distribution
-#theta: parameter value(s)
-#mu: parameter prior distribution mean(s)
-#sigma: paramter prior distribution sigma(s)
-def lp_norm(theta, mu, sigma):
-    return np.sum(-0.5*((theta-mu)/sigma)**2 - np.log(sigma)-0.5*np.log(2*np.pi))
-
+#Import yield models
+import R68_yield as Yield
+#Initialize Yield model
+Y=Yield.Yield('Lind',[0.15])
+model=mcmc_data['Ymodel']
+Y=Yield.Yield(model,np.zeros(Y.model_npar[model]))
 
 ################################################################################
 #Calculate Log probability, log(likelihood*prior)
@@ -227,6 +193,8 @@ def calc_log_prob(theta=[0.2, 1, 1, 1], theta_bounds=((0,1),(0,10),(0,10),(0,10)
     
     ##########
     #Build the spectra
+    #This includes detector resolution, triggering, and cut efficiency effects
+    #Does NOT include livetime or write efficiency
 
     #NR
     N_nr=spec.buildAvgSimSpectrum_ee(Ebins=Ebins, Evec=Evec_nr, Yield=Y, F=F_NR, scale=1, 
@@ -236,9 +204,11 @@ def calc_log_prob(theta=[0.2, 1, 1, 1], theta_bounds=((0,1),(0,10),(0,10),(0,10)
                                                doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'])
     
 
-    #Total counts for PuBe live time
-    #Uncertainty will be ~sqrt(N)
-    N_pred = (N_nr*scale_g4/g4['NR']['tlive'] + N_er*scale_g4/g4['ER']['tlive'] + N_ng*scale_ng/cap['tlive'])*tlive_PuBe
+    #Adjust for livetime and write efficiency
+    import R68_efficiencies as eff
+    N_pred = (N_nr*scale_g4/g4['NR']['tlive'] + 
+              N_er*scale_g4/g4['ER']['tlive'] + 
+              N_ng*scale_ng/cap['tlive'])*tlive_PuBe*eff.eff_write
 
     ##########
     #Calculate the log probability = log prior + log likelihood
@@ -248,6 +218,8 @@ def calc_log_prob(theta=[0.2, 1, 1, 1], theta_bounds=((0,1),(0,10),(0,10),(0,10)
         ll = ll_norm(N_meas[slice(*spec_bounds)],N_pred[slice(*spec_bounds)])
     elif likelihood=='Pois':
         ll = ll_pois(N_meas[slice(*spec_bounds)],N_pred[slice(*spec_bounds)])
+    elif likelihood=='SNorm':
+        ll = ll_SNorm(N_pred[slice(*spec_bounds)],*SNpars)
     else:
         print('Error: Bad likelihood')
         return None
@@ -264,18 +236,9 @@ def calc_log_prob(theta=[0.2, 1, 1, 1], theta_bounds=((0,1),(0,10),(0,10),(0,10)
 import emcee
 from multiprocessing import Pool
 
-labels=mcmc_data['labels']
-theta_bounds=mcmc_data['theta_bounds']
-
-#Set fit range
-E_lim_min=mcmc_data['Efit_min'] #eVee
-E_lim_max=mcmc_data['Efit_max'] #eVee
-spec_bounds=(np.digitize(E_lim_min,Ebins)-1,np.digitize(E_lim_max,Ebins)-1)
-mcmc_data['spec_bounds']=spec_bounds
-
 def Fit_helper(theta):                 
-    return calc_log_prob(theta=theta, theta_bounds=theta_bounds,
-                         spec_bounds=spec_bounds, likelihood=mcmc_data['likelihood'])
+    return calc_log_prob(theta=theta, theta_bounds=mcmc_data['theta_bounds'],
+                         spec_bounds=mcmc_data['spec_bounds'], likelihood=mcmc_data['likelihood'])
 
 ################################################################################
 #MCMC Fitting loop
@@ -292,8 +255,8 @@ nstep=mcmc_data['nstep']
 
 #Sample priors uniformly
 if mcmc_data['guesses']=='Uniform':
-    bounds_low=np.array(theta_bounds)[:,0]
-    bounds_hi=np.array(theta_bounds)[:,1]
+    bounds_low=np.array(mcmc_data['theta_bounds'])[:,0]
+    bounds_hi=np.array(mcmc_data['theta_bounds'])[:,1]
     mcmc_data['guesses']=(bounds_hi-bounds_low)*np.random.random_sample((nwalkers, ndim))+bounds_low
 
 with MPIPool() as pool:
@@ -316,6 +279,7 @@ with MPIPool() as pool:
     
     print('Total run time was {0:.2f} hours.'.format((end - start)/3600))
     
+mcmc_data['sampler']=sampler
 ################################################################################
 #Save this work
 ################################################################################
@@ -323,7 +287,6 @@ with MPIPool() as pool:
 import pickle as pkl
 import os
 import misc
-
 
 if mcmc_data['saveMCMC']:
     ifile = 0
@@ -336,9 +299,5 @@ if mcmc_data['saveMCMC']:
                                                                   mcmc_data['likelihood'],ifile+1)
         
     print(fname)
-    saveFile = open(fname, 'wb')
-    
-    mcmc_data['sampler']=sampler
-    
-    pkl.dump(mcmc_data,saveFile)
-    saveFile.close()
+    with open(fname, 'wb') as saveFile:
+        pkl.dump(mcmc_data,saveFile)
