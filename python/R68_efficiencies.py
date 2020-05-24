@@ -51,19 +51,29 @@ deff_pileup_bkg = 0.0040
 #deff_trigburst_bkg = 0.0013
 
 #http://www.hep.umn.edu/cdms/cdms_restricted/K100/analysis/Run68_RateCut_pt2/
+#Replaced with dN cut: burst_cut.ipynb
 def trigburstEff(E):
-    eff=np.zeros_like(E)
-    eff[E<=37.01]=0.9863
-    eff[(E>37.01) & (E<=148.9)]=0.9709
-    eff[(E>148.9) & (E<=376.2)]=0.9825
-    eff[E>376.2]=0.9863
+    #eff=np.zeros_like(E)
+    #eff[E<=37.01]=0.9863
+    #eff[(E>37.01) & (E<=148.9)]=0.9709
+    #eff[(E>148.9) & (E<=376.2)]=0.9825
+    #eff[E>376.2]=0.9863
+    #return eff
+    eff=np.ones_like(E)
+    eff[(E>=50)&(E<1000)]=0.8933
     return eff
+    
 def dtrigburstEff(E):
-    return 0.0021*np.ones_like(E)
-def trigburstEff_bkg(E):
-    return 0.9992*np.ones_like(E)
-def dtrigburstEff_bkg(E):
-    return 0.0021*np.ones_like(E)
+    #return 0.0021*np.ones_like(E)
+    deff=np.zeros_like(E)
+    deff[(E>=50)&(E<1000)]=0.0006
+    return deff
+
+#No dN cut needed for bkg
+#def trigburstEff_bkg(E):
+#    return 0.9992*np.ones_like(E)
+#def dtrigburstEff_bkg(E):
+#    return 0.0021*np.ones_like(E)
 
 #Spikey Cut Efficiency
 with open('data/r68_PuBe_cspike_eff_1keV.txt') as feffspike:
@@ -121,7 +131,8 @@ def dchisqEff_bkg(E):
 def cutEff(E):
     return eff_tail*eff_pileup*trigburstEff(E)*spikeEff(E)*chisqEff(E)
 def cutEff_bkg(E):
-    return eff_tail_bkg*eff_pileup_bkg*trigburstEff_bkg(E)*spikeEff_bkg(E)*chisqEff_bkg(E)
+    #return eff_tail_bkg*eff_pileup_bkg*trigburstEff_bkg(E)*spikeEff_bkg(E)*chisqEff_bkg(E)
+    return eff_tail_bkg*eff_pileup_bkg*spikeEff_bkg(E)*chisqEff_bkg(E)
 
 
 #Return the upper and lower total cut uncertainties
@@ -130,12 +141,12 @@ def cutEff_bkg(E):
 def dcutEff(E):
     
     dupsq = (deff_write/eff_write)**2 + (deff_tail/eff_tail)**2 + (deff_pileup/eff_pileup)**2 + \
-    (dtrigburstEff(E)[0]/trigburstEff(E))**2 + (dspikeEff(E)[0]/spikeEff(E))**2 + (dchisqEff(E)[0]/chisqEff(E))**2
+    (dtrigburstEff(E)/trigburstEff(E))**2 + (dspikeEff(E)[0]/spikeEff(E))**2 + (dchisqEff(E)[0]/chisqEff(E))**2
     #dup = np.sqrt(dupsq/(cutEff(E)**2)) This isn't right at all!
     dup = cutEff(E)*np.sqrt(dupsq)
     
     dlowsq = (deff_write/eff_write)**2 + (deff_tail/eff_tail)**2 + (deff_pileup/eff_pileup)**2 + \
-    (dtrigburstEff(E)[1]/trigburstEff(E))**2 + (dspikeEff(E)[1]/spikeEff(E))**2 + (dchisqEff(E)[1]/chisqEff(E))**2
+    (dtrigburstEff(E)/trigburstEff(E))**2 + (dspikeEff(E)[1]/spikeEff(E))**2 + (dchisqEff(E)[1]/chisqEff(E))**2
     #dlow = np.sqrt(dlowsq/(cutEff(E)**2))
     dlow = cutEff(E)*np.sqrt(dlowsq)
     
@@ -144,12 +155,12 @@ def dcutEff(E):
 def dcutEff_bkg(E):
     
     dupsq = (deff_write_bkg/eff_write_bkg)**2 + (deff_tail_bkg/eff_tail_bkg)**2 + (deff_pileup_bkg/eff_pileup_bkg)**2 + \
-    (dtrigburstEff_bkg(E)[0]/trigburstEff_bkg(E))**2 + (dspikeEff_bkg(E)[0]/spikeEff_bkg(E))**2 + (dchisqEff_bkg(E)[0]/chisqEff_bkg(E))**2
+    + (dspikeEff_bkg(E)[0]/spikeEff_bkg(E))**2 + (dchisqEff_bkg(E)[0]/chisqEff_bkg(E))**2
     #dup = np.sqrt(dupsq/(cutEff_bkg(E)**2))
     dup = cutEff_bkg(E)*np.sqrt(dupsq)
     
     dlowsq = (deff_write_bkg/eff_write_bkg)**2 + (deff_tail_bkg/eff_tail_bkg)**2 + (deff_pileup_bkg/eff_pileup_bkg)**2 + \
-    (dtrigburstEff_bkg(E)[1]/trigburstEff_bkg(E))**2 + (dspikeEff_bkg(E)[1]/spikeEff_bkg(E))**2 + (dchisqEff_bkg(E)[1]/chisqEff_bkg(E))**2
+    + (dspikeEff_bkg(E)[1]/spikeEff_bkg(E))**2 + (dchisqEff_bkg(E)[1]/chisqEff_bkg(E))**2
     #dlow = np.sqrt(dlowsq/(cutEff_bkg(E)**2))
     dlow = cutEff_bkg(E)*np.sqrt(dlowsq)
     
