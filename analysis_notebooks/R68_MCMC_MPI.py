@@ -57,6 +57,7 @@ mcmc_data={'g4_load_frac':0.1,
           'Ebins': np.linspace(0,2000,201), #np.linspace(0,2000,201),
            'Efit_min':50, #[eVee]
            'Efit_max':1750, #[eVee]
+           'spectrum_units':'reco-rate', #One of {'counts', 'reco-rate'}
            ########################## Yield Model Settings ##########################
            'Ymodel':'Lind',
            'labels': [r'k', r'$F_{NR}$', r'$scale_{G4}$', r'$scale_{ng}$'],
@@ -79,14 +80,14 @@ mcmc_data={'g4_load_frac':0.1,
            ########################## Likelihood Settings ##########################
            'likelihood':'SNorm', #One of {'Pois', 'Norm', 'SNorm'} Only SNorm accepts sigmas, others assume Pois stats
            ########################## Uncertainty Settings ##########################
-           'doDetRes': True,
+           'doDetRes': True, #Include detector resolution effects
            'fpeak':0.753, #0.753 -- 1.0
            'cLERate':'Nom',#LowEnergyRate cut level {'Low','Nom','Hi'}
            'doEffsyst':True, #Include systematics from cut efficiencies (w/o LERate cut uncertatinty)
-           'doLERsyst':False, #Include the systematics from the LERate cut in the measured PDF
+           'doLERsyst':True, #Include the systematics from the LERate cut in the measured PDF
            ########################## MCMC Settings ##########################
            'nwalkers':128,
-           'ndim':4,
+           'ndim':4, #Choose to match total # of params
            #'ndim':5,
            #'ndim':8,
            'nstep':5000,
@@ -102,6 +103,7 @@ import R68_load as r68
 import R68_spec_tools as spec
 #Import likelihood functions
 from likelihoods import *
+import R68_efficiencies as eff
 
 #Set eVee energy binning
 Emax=mcmc_data['Emax']
@@ -115,13 +117,14 @@ spec_bounds=(np.digitize(E_lim_min,Ebins)-1,np.digitize(E_lim_max,Ebins)-1)
 mcmc_data['spec_bounds']=spec_bounds
 
 #Measured spectra background subtraction
-#To use the Poisson likelihood, we want to work with PuBe signal counts.
-#So we scale the measured background counts by the appropriate livetime and efficiency factors
-# then subtract from the measured PuBe data counts
 meas=r68.load_measured(cLERate=mcmc_data['cLERate'],verbose=True)
 tlive_PuBe=meas['PuBe']['tlive']
+
+#Note that N_meas may be either in counts or reconstructed rate, depending on mcmc_data['spectrum_units']
+#uncertainty is (high,low)
 N_meas,dN_meas=spec.doBkgSub(meas, Ebins, mcmc_data['Efit_min'], mcmc_data['Efit_max'],\
-                             doEffsyst=mcmc_data['doEffsyst'], doLERsyst=mcmc_data['doLERsyst']) #dN returns (high,low)
+                             doEffsyst=mcmc_data['doEffsyst'], doLERsyst=mcmc_data['doLERsyst'],\
+                             output=mcmc_data['spectrum_units'])
 
 if mcmc_data['likelihood']=='SNorm':
     #Precalculate split normal likelihood params if we're going to need it
@@ -144,9 +147,15 @@ Evec_nr=g4['NR']['E'][Evec_nr_cut]
 
 #Calculate Simulated ER spectrum
 #This is independent of other params, so we can do this once and reuse it
-N_er = spec.buildAvgSimSpectrum_ee(Ebins=Ebins, Evec=Evec_er, Yield=1.0, F=F, scale=1,\
-                                   doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'])    
-
+if mcmc_data['spectrum_units']=='counts':
+    N_er = spec.buildAvgSimSpectrum_ee(Ebins=Ebins, Evec=Evec_er, Yield=1.0, F=F, scale=1,\
+                                       doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'],\
+                                       doEffs=True)    
+elif mcmc_data['spectrum_units']=='reco-rate':
+    N_er = spec.buildAvgSimSpectrum_ee(Ebins=Ebins, Evec=Evec_er, Yield=1.0, F=F, scale=1,\
+                                       doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'],\
+                                       doEffs=False)
+        
 #Import yield models
 import R68_yield as Yield
 #Initialize Yield model
@@ -165,9 +174,11 @@ Y=Yield.Yield(model,np.zeros(Y.model_npar[model]))
 def calc_log_prob(theta=[0.2, 1, 1, 1], theta_bounds=((0,1),(0,10),(0,10),(0,10)), spec_bounds=(5,101),
                   likelihood='Pois'):
 
+    
+    
     #Access the global data
     #These must be already defined!!!
-    global N_meas, N_er, tlive_PuBe, Evec_nr, cap, Y
+    global mcmc_data, eff, N_meas, N_er, tlive_PuBe, Evec_nr, cap, Y
     
     ############
     #Set some local variables
@@ -193,22 +204,38 @@ def calc_log_prob(theta=[0.2, 1, 1, 1], theta_bounds=((0,1),(0,10),(0,10),(0,10)
     
     ##########
     #Build the spectra
-    #This includes detector resolution, triggering, and cut efficiency effects
-    #Does NOT include livetime or write efficiency
+    if mcmc_data['spectrum_units']=='counts':
+        #This includes detector resolution, triggering, and cut efficiency effects
+        #Does NOT include livetime or write efficiency
 
-    #NR
-    N_nr=spec.buildAvgSimSpectrum_ee(Ebins=Ebins, Evec=Evec_nr, Yield=Y, F=F_NR, scale=1, 
-                                               doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'])
-    #(n,gamma)
-    N_ng=spec.buildAvgSimSpectrum_ee_composite(Ebins=Ebins, Evec=cap['E'], dEvec=cap['dE'], Yield=Y, F=F_NR, scale=1, 
-                                               doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'])
+        #NR
+        N_nr=spec.buildAvgSimSpectrum_ee(Ebins=Ebins, Evec=Evec_nr, Yield=Y, F=F_NR, scale=1,\
+                                         doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'],\
+                                         doEffs=True)
+        #(n,gamma)
+        N_ng=spec.buildAvgSimSpectrum_ee_composite(Ebins=Ebins, Evec=cap['E'], dEvec=cap['dE'], Yield=Y, F=F_NR, scale=1,\
+                                                   doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'],\
+                                                   doEffs=True)
+
+        #Adjust for livetime and write efficiency
+        N_pred = (N_nr*scale_g4/g4['NR']['tlive'] + 
+                  N_er*scale_g4/g4['ER']['tlive'] + 
+                  N_ng*scale_ng/cap['tlive'])*tlive_PuBe*eff.eff_write
     
-
-    #Adjust for livetime and write efficiency
-    import R68_efficiencies as eff
-    N_pred = (N_nr*scale_g4/g4['NR']['tlive'] + 
-              N_er*scale_g4/g4['ER']['tlive'] + 
-              N_ng*scale_ng/cap['tlive'])*tlive_PuBe*eff.eff_write
+    elif mcmc_data['spectrum_units']=='reco-rate':
+        #Don't apply any efficiency effects to simulated spectrum
+        #NR
+        N_nr=spec.buildAvgSimSpectrum_ee(Ebins=Ebins, Evec=Evec_nr, Yield=Y, F=F_NR, scale=1,\
+                                         doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'],\
+                                         doEffs=False)
+        #(n,gamma)
+        N_ng=spec.buildAvgSimSpectrum_ee_composite(Ebins=Ebins, Evec=cap['E'], dEvec=cap['dE'], Yield=Y, F=F_NR, scale=1,\
+                                                   doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'],\
+                                                   doEffs=False)
+        #Calculate rate
+        N_pred = (N_nr*scale_g4/g4['NR']['tlive'] + 
+                  N_er*scale_g4/g4['ER']['tlive'] + 
+                  N_ng*scale_ng/cap['tlive'])
 
     ##########
     #Calculate the log probability = log prior + log likelihood

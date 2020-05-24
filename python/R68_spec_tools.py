@@ -16,6 +16,11 @@ import R68_load
 #Efit_max: [eVee] Maximum energy over which the fit will be performed (max analysis threshold)
 #doEffsyst: Include efficiency uncertainties (from write and cut efficiencies)
 #doLERsyst: Include systematic uncertainty from varying the LowEnergyRate cut
+#output: What quantities to output. One of {'counts', 'reco-rate'}. 
+#  'counts' will return the background-subtracted PuBe counts: N_PuBe-N_Bkg*ratio_Tlive*ratio_write*ratio_cutEff
+#  'reco-rate' will return the reconstructed measured rate: 
+#      N_PuBe/(Tlive_PuBe*eff_{write,PuBe}*eff_{cut,PuBe}*eff_trig)  -
+#        N_Bkg/(Tlive_Bkg*eff_{write,Bkg}*eff_{cut,Bkg}*eff_trig)
 #
 #Returns: (N_meas, dN_meas) The background-subtracted measured spectrum and its uncertainty.
 # Units are in counts/bin, NOT rate.
@@ -24,7 +29,7 @@ import R68_load
 # Uncertatinty always includes Poisson uncertainties of Bkg and PuBe count rates at least. 
 # More effects can be enabled with the doEffsyst and doLERsyst tags
 ###########################################################################
-def doBkgSub(meas, Ebins, Efit_min, Efit_max, doEffsyst=True, doLERsyst=True):
+def doBkgSub(meas, Ebins, Efit_min, Efit_max, doEffsyst=True, doLERsyst=True, output='counts'):
     Ebins_ctr=(Ebins[:-1]+Ebins[1:])/2
     
     N_meas_PuBe,_ = np.histogram(meas['PuBe']['E'],bins=Ebins)
@@ -33,92 +38,163 @@ def doBkgSub(meas, Ebins, Efit_min, Efit_max, doEffsyst=True, doLERsyst=True):
     dN_meas_PuBe_Pois=np.sqrt(N_meas_PuBe)
     dN_meas_Bkg_Pois=np.sqrt(N_meas_Bkg)
 
-    if not doEffsyst:
-        #Scaling factors
-        tlive_ratio=meas['PuBe']['tlive']/meas['Bkg']['tlive']
-        writeEff_ratio=eff.eff_write/eff.eff_write_bkg
+    if output=='counts':
+        #Want to return: N_meas = N_PuBe-N_Bkg*ratio_Tlive*ratio_write*ratio_cutEff
+        #And the appropriate uncertainties
+        if not doEffsyst:
+            #Scaling factors
+            tlive_ratio=meas['PuBe']['tlive']/meas['Bkg']['tlive']
+            writeEff_ratio=eff.eff_write/eff.eff_write_bkg
 
-        #Divide by 0s will happen here...
-        cutEff_ratio=eff.cutEffFit(Ebins_ctr)/eff.cutEffFit_bkg(Ebins_ctr)
+            #Divide by 0s will happen here...
+            cutEff_ratio=eff.cutEffFit(Ebins_ctr)/eff.cutEffFit_bkg(Ebins_ctr)
 
-        ratio=tlive_ratio*writeEff_ratio*cutEff_ratio
+            ratio=tlive_ratio*writeEff_ratio*cutEff_ratio
 
-        #Make sure any divide by 0s happened below threshold
-        spec_bounds=(np.digitize(Efit_min,Ebins)-1,np.digitize(Efit_max,Ebins)-1)
-        if not np.all(np.isfinite(ratio[slice(*spec_bounds)])):
-            print('Error in R68_spec_tools.doBkgSub: Bad background scaling ratio in fit range.')
-            return None
+            #Make sure any divide by 0s happened below threshold
+            spec_bounds=(np.digitize(Efit_min,Ebins)-1,np.digitize(Efit_max,Ebins)-1)
+            if not np.all(np.isfinite(ratio[slice(*spec_bounds)])):
+                print('Error in R68_spec_tools.doBkgSub: Bad background scaling ratio in fit range.')
+                return None
 
-        #Bkg-subtracted measured PuBe signal
-        N_bkg_scaled=N_meas_Bkg*ratio
-        dN_bkg_scaled=dN_meas_Bkg_Pois*ratio
+            #Bkg-subtracted measured PuBe signal
+            N_bkg_scaled=N_meas_Bkg*ratio
+            dN_bkg_scaled=dN_meas_Bkg_Pois*ratio
 
-        N_meas = N_meas_PuBe - N_bkg_scaled
-        dN_meas = np.sqrt( dN_meas_PuBe_Pois**2 + dN_bkg_scaled**2 ) # 1-d since all errors are symmetric here when using the conservative cut eff fits
-    else:
-        #Include uncertainty from efficiencies
-        dN_meas_PuBe = N_meas_PuBe*np.sqrt( (dN_meas_PuBe_Pois/N_meas_PuBe)**2 +\
-                                           (eff.deff_write/eff.eff_write)**2 +\
-                                           (eff.dcutEffFit(Ebins_ctr)/eff.cutEffFit(Ebins_ctr))**2)
-        dN_meas_Bkg = N_meas_Bkg*np.sqrt( (dN_meas_Bkg_Pois/N_meas_Bkg)**2 +\
-                                         (eff.deff_write_bkg/eff.eff_write_bkg)**2 +\
-                                         (eff.dcutEffFit_bkg(Ebins_ctr)/eff.cutEffFit_bkg(Ebins_ctr))**2)
+            N_meas = N_meas_PuBe - N_bkg_scaled
+            # 1-d since all errors are symmetric here when using the conservative cut eff fits
+            dN_meas = np.sqrt( dN_meas_PuBe_Pois**2 + dN_bkg_scaled**2 ) 
+        else:
+            #Include uncertainty from efficiencies
+            dN_meas_PuBe = N_meas_PuBe*np.sqrt( (dN_meas_PuBe_Pois/N_meas_PuBe)**2 +\
+                                               (eff.deff_write/eff.eff_write)**2 +\
+                                               (eff.dcutEffFit(Ebins_ctr)/eff.cutEffFit(Ebins_ctr))**2)
+            dN_meas_Bkg = N_meas_Bkg*np.sqrt( (dN_meas_Bkg_Pois/N_meas_Bkg)**2 +\
+                                             (eff.deff_write_bkg/eff.eff_write_bkg)**2 +\
+                                             (eff.dcutEffFit_bkg(Ebins_ctr)/eff.cutEffFit_bkg(Ebins_ctr))**2)
 
-        #Scaling factors
-        tlive_ratio=meas['PuBe']['tlive']/meas['Bkg']['tlive']
-        writeEff_ratio=eff.eff_write/eff.eff_write_bkg
-        dwriteEff_ratio=writeEff_ratio*np.sqrt( (eff.deff_write/eff.eff_write)**2 +\
-                                               (eff.deff_write_bkg/eff.eff_write_bkg)**2 )
-        #Divide by 0s will happen here...
-        cutEff_ratio=eff.cutEffFit(Ebins_ctr)/eff.cutEffFit_bkg(Ebins_ctr)
-        dcutEff_ratio = cutEff_ratio*np.sqrt( (eff.dcutEffFit(Ebins_ctr)/eff.cutEffFit(Ebins_ctr))**2 +\
-                                             (eff.dcutEffFit_bkg(Ebins_ctr)/eff.cutEffFit_bkg(Ebins_ctr))**2 )
+            #Scaling factors
+            tlive_ratio=meas['PuBe']['tlive']/meas['Bkg']['tlive']
+            writeEff_ratio=eff.eff_write/eff.eff_write_bkg
+            dwriteEff_ratio=writeEff_ratio*np.sqrt( (eff.deff_write/eff.eff_write)**2 +\
+                                                   (eff.deff_write_bkg/eff.eff_write_bkg)**2 )
+            #Divide by 0s will happen here...
+            cutEff_ratio=eff.cutEffFit(Ebins_ctr)/eff.cutEffFit_bkg(Ebins_ctr)
+            dcutEff_ratio = cutEff_ratio*np.sqrt( (eff.dcutEffFit(Ebins_ctr)/eff.cutEffFit(Ebins_ctr))**2 +\
+                                                 (eff.dcutEffFit_bkg(Ebins_ctr)/eff.cutEffFit_bkg(Ebins_ctr))**2 )
 
-        ratio=tlive_ratio*writeEff_ratio*cutEff_ratio
-        dratio=ratio*np.sqrt( (dwriteEff_ratio/writeEff_ratio)**2 +(dcutEff_ratio/cutEff_ratio)**2 )
+            ratio=tlive_ratio*writeEff_ratio*cutEff_ratio
+            dratio=ratio*np.sqrt( (dwriteEff_ratio/writeEff_ratio)**2 +(dcutEff_ratio/cutEff_ratio)**2 )
 
-        #Make sure any divide by 0s happened below threshold
-        spec_bounds=(np.digitize(Efit_min,Ebins)-1,np.digitize(Efit_max,Ebins)-1)
-        if (not np.all(np.isfinite(ratio[slice(*spec_bounds)]))) or (not np.all(np.isfinite(dratio[slice(*spec_bounds)]))):
-            print('Error in R68_spec_tools.doBkgSub: Bad background scaling ratio in fit range.')
-            return None
+            #Make sure any divide by 0s happened below threshold
+            spec_bounds=(np.digitize(Efit_min,Ebins)-1,np.digitize(Efit_max,Ebins)-1)
+            if (not np.all(np.isfinite(ratio[slice(*spec_bounds)]))) or (not np.all(np.isfinite(dratio[slice(*spec_bounds)]))):
+                print('Error in R68_spec_tools.doBkgSub: Bad background scaling ratio in fit range.')
+                return None
 
-        #Bkg-subtracted measured PuBe signal
-        N_bkg_scaled=N_meas_Bkg*ratio
-        dN_bkg_scaled=N_bkg_scaled*np.sqrt( (dN_meas_Bkg/N_meas_Bkg)**2 + (dratio/ratio)**2 )
+            #Bkg-subtracted measured PuBe signal
+            N_bkg_scaled=N_meas_Bkg*ratio
+            dN_bkg_scaled=N_bkg_scaled*np.sqrt( (dN_meas_Bkg/N_meas_Bkg)**2 + (dratio/ratio)**2 )
 
-        N_meas = N_meas_PuBe - N_bkg_scaled
-        dN_meas = np.sqrt( dN_meas_PuBe**2 + dN_bkg_scaled**2 ) # 1-d since all errors are symmetric here when using the conservative cut eff fits
-    
-    if not doLERsyst:
-        #We're done
-        return (N_meas, (dN_meas, dN_meas))
-    else:
-        #Get the extreme values from the LERate cut
-        meas_hi=R68_load.load_measured(cLERate='Hi',verbose=False)
-        meas_low=R68_load.load_measured(cLERate='Low',verbose=False)
-        N_meas_PuBe_hi,_ = np.histogram(meas_hi['PuBe']['E'],bins=Ebins)
-        N_meas_PuBe_low,_ = np.histogram(meas_low['PuBe']['E'],bins=Ebins)
-        #Count uncertainties are Poisson
-        dN_meas_PuBe_Pois_hi=np.sqrt(N_meas_PuBe_hi)
-        dN_meas_PuBe_Pois_low=np.sqrt(N_meas_PuBe_low)
+            N_meas = N_meas_PuBe - N_bkg_scaled
+            # 1-d since all errors are symmetric here when using the conservative cut eff fits
+            dN_meas = np.sqrt( dN_meas_PuBe**2 + dN_bkg_scaled**2 ) 
 
-        #Include uncertainty from efficiencies
-        dN_meas_PuBe_hi = N_meas_PuBe_hi*np.sqrt( (dN_meas_PuBe_Pois_hi/N_meas_PuBe_hi)**2 +\
-                                                 (eff.deff_write/eff.eff_write)**2 +\
-                                                 (eff.dcutEffFit(Ebins_ctr)/eff.cutEffFit(Ebins_ctr))**2)
-        dN_meas_PuBe_low = N_meas_PuBe_low*np.sqrt( (dN_meas_PuBe_Pois_low/N_meas_PuBe_low)**2 +\
-                                                   (eff.deff_write/eff.eff_write)**2 +\
-                                                   (eff.dcutEffFit(Ebins_ctr)/eff.cutEffFit(Ebins_ctr))**2)
-        #Bkg scaling factors same as above
-        N_meas_hi = N_meas_PuBe_hi - N_bkg_scaled
-        N_meas_low = N_meas_PuBe_low - N_bkg_scaled
-        dN_meas_hi = np.sqrt( dN_meas_PuBe_hi**2 + dN_bkg_scaled**2 ) #All errors are symmetric here when using the conservative cut eff fits
-        dN_meas_low = np.sqrt( dN_meas_PuBe_low**2 + dN_bkg_scaled**2 )
+        if not doLERsyst:
+            #We're done
+            return (N_meas, (dN_meas, dN_meas))
+        else:
+            #Get the extreme values from the LERate cut
+            meas_hi=R68_load.load_measured(cLERate='Hi',verbose=False)
+            meas_low=R68_load.load_measured(cLERate='Low',verbose=False)
+            N_meas_PuBe_hi,_ = np.histogram(meas_hi['PuBe']['E'],bins=Ebins)
+            N_meas_PuBe_low,_ = np.histogram(meas_low['PuBe']['E'],bins=Ebins)
+            #Count uncertainties are Poisson
+            dN_meas_PuBe_Pois_hi=np.sqrt(N_meas_PuBe_hi)
+            dN_meas_PuBe_Pois_low=np.sqrt(N_meas_PuBe_low)
+
+            #Include uncertainty from efficiencies
+            dN_meas_PuBe_hi = N_meas_PuBe_hi*np.sqrt( (dN_meas_PuBe_Pois_hi/N_meas_PuBe_hi)**2 +\
+                                                     (eff.deff_write/eff.eff_write)**2 +\
+                                                     (eff.dcutEffFit(Ebins_ctr)/eff.cutEffFit(Ebins_ctr))**2)
+            dN_meas_PuBe_low = N_meas_PuBe_low*np.sqrt( (dN_meas_PuBe_Pois_low/N_meas_PuBe_low)**2 +\
+                                                       (eff.deff_write/eff.eff_write)**2 +\
+                                                       (eff.dcutEffFit(Ebins_ctr)/eff.cutEffFit(Ebins_ctr))**2)
+            #Bkg scaling factors same as above
+            N_meas_hi = N_meas_PuBe_hi - N_bkg_scaled
+            N_meas_low = N_meas_PuBe_low - N_bkg_scaled
+            #All errors are symmetric here when using the conservative cut eff fits
+            dN_meas_hi = np.sqrt( dN_meas_PuBe_hi**2 + dN_bkg_scaled**2 ) 
+            dN_meas_low = np.sqrt( dN_meas_PuBe_low**2 + dN_bkg_scaled**2 )
+
+            #We'll take the Nominal N_meas and set the +/- sigmas to be the extreme values from the cut systematics
+            return (N_meas, ( (N_meas_hi+dN_meas_hi)-N_meas, N_meas-(N_meas_low-dN_meas_low) ))
         
-        #We'll take the Nominal N_meas and set the +/- sigmas to be the extreme values from the cut systematics
-        return (N_meas, ( (N_meas_hi+dN_meas_hi)-N_meas, N_meas-(N_meas_low-dN_meas_low) ))
+    elif output=='reco-rate':
+        #Want to return R_meas = N_PuBe/(Tlive_PuBe*eff_{write,PuBe}*eff_{cut,PuBe}*eff_trig)  -
+        #        N_Bkg/(Tlive_Bkg*eff_{write,Bkg}*eff_{cut,Bkg}*eff_trig)
+        #And the appropriate uncertainties
+        
+        Denom_PuBe = meas['PuBe']['tlive']*eff.eff_write*eff.cutEffFit(Ebins_ctr)*eff.trigEff(Ebins_ctr)
+        R_meas_PuBe = N_meas_PuBe/Denom_PuBe
+        Denom_Bkg = meas['Bkg']['tlive']*eff.eff_write_bkg*eff.cutEffFit_bkg(Ebins_ctr)*eff.trigEff(Ebins_ctr)
+        R_meas_Bkg = N_meas_Bkg/Denom_Bkg
+        
+        R_meas = R_meas_PuBe - R_meas_Bkg
+        
+        if not doLERsyst:
+            dR_meas_PuBe = R_meas_PuBe*np.sqrt( (dN_meas_PuBe_Pois/N_meas_PuBe)**2 +\
+                                               doEffsyst*(eff.deff_write/eff.eff_write)**2 +\
+                                               doEffsyst*(eff.dcutEffFit(Ebins_ctr)/eff.cutEffFit(Ebins_ctr))**2 +\
+                                               doEffsyst*(eff.dtrigEff(Ebins_ctr)/eff.trigEff(Ebins_ctr))**2 )
+            dR_meas_Bkg = R_meas_Bkg*np.sqrt( (dN_meas_Bkg_Pois/N_meas_Bkg)**2 +\
+                                             doEffsyst*(eff.deff_write_bkg/eff.eff_write_bkg)**2 +\
+                                             doEffsyst*(eff.dcutEffFit_bkg(Ebins_ctr)/eff.cutEffFit_bkg(Ebins_ctr))**2 +\
+                                             doEffsyst*(eff.dtrigEff(Ebins_ctr)/eff.trigEff(Ebins_ctr))**2 )
+            
+            dR_meas = np.sqrt(dR_meas_PuBe**2 + dR_meas_Bkg**2)
+            return (R_meas, (dR_meas, dR_meas))
+        
+        else:
+            #Get the extreme values from the LERate cut
+            meas_hi=R68_load.load_measured(cLERate='Hi',verbose=False)
+            meas_low=R68_load.load_measured(cLERate='Low',verbose=False)
+            N_meas_PuBe_hi,_ = np.histogram(meas_hi['PuBe']['E'],bins=Ebins)
+            N_meas_PuBe_low,_ = np.histogram(meas_low['PuBe']['E'],bins=Ebins)
+            #Count uncertainties are Poisson
+            dN_meas_PuBe_Pois_hi=np.sqrt(N_meas_PuBe_hi)
+            dN_meas_PuBe_Pois_low=np.sqrt(N_meas_PuBe_low)
+            
+            R_meas_PuBe_hi = N_meas_PuBe_hi/Denom_PuBe
+            R_meas_PuBe_low = N_meas_PuBe_low/Denom_PuBe
 
+            R_meas_hi = R_meas_PuBe_hi - R_meas_Bkg
+            R_meas_low = R_meas_PuBe_low - R_meas_Bkg
+            
+            dR_meas_PuBe_hi = R_meas_PuBe_hi*np.sqrt( (dN_meas_PuBe_Pois_hi/N_meas_PuBe_hi)**2 +\
+                                   doEffsyst*(eff.deff_write/eff.eff_write)**2 +\
+                                   doEffsyst*(eff.dcutEffFit(Ebins_ctr)/eff.cutEffFit(Ebins_ctr))**2 +\
+                                   doEffsyst*(eff.dtrigEff(Ebins_ctr)/eff.trigEff(Ebins_ctr))**2 )
+            dR_meas_PuBe_low = R_meas_PuBe_low*np.sqrt( (dN_meas_PuBe_Pois_low/N_meas_PuBe_low)**2 +\
+                                   doEffsyst*(eff.deff_write/eff.eff_write)**2 +\
+                                   doEffsyst*(eff.dcutEffFit(Ebins_ctr)/eff.cutEffFit(Ebins_ctr))**2 +\
+                                   doEffsyst*(eff.dtrigEff(Ebins_ctr)/eff.trigEff(Ebins_ctr))**2 )
+            
+            dR_meas_Bkg = R_meas_Bkg*np.sqrt( (dN_meas_Bkg_Pois/N_meas_Bkg)**2 +\
+                                 doEffsyst*(eff.deff_write_bkg/eff.eff_write_bkg)**2 +\
+                                 doEffsyst*(eff.dcutEffFit_bkg(Ebins_ctr)/eff.cutEffFit_bkg(Ebins_ctr))**2 +\
+                                 doEffsyst*(eff.dtrigEff(Ebins_ctr)/eff.trigEff(Ebins_ctr))**2 )
+            
+            dR_meas_hi = np.sqrt(dR_meas_PuBe_hi**2 + dR_meas_Bkg**2)
+            dR_meas_low = np.sqrt(dR_meas_PuBe_low**2 + dR_meas_Bkg**2)
+            
+            #Return the width to the extreme 1-sigma points (hi, low)
+            return ( R_meas, ( (R_meas_hi+dR_meas_hi)-R_meas, R_meas-(R_meas_low-dR_meas_low) ) )
+        
+    else:
+        print(f'Error in R68_spec_tools.doBkgSub: bad "output" keyword: {output}')
+        print('Should be one of: {"counts", "reco-rate"}')
+        return None
 ###########################################################################
 #Apply yield, resolution, efficiencies etc. to simulated data to get an instance of a simulated E_ee spectrum
 
@@ -422,10 +498,10 @@ def buildAvgSimSpectra_ee(Ebins, Evec_nr, Evec_er, Evec_ng, dEvec_ng, Yield, F_N
 #scale: Scaling of spectrum 
 #doDetRes: whether to apply detector resolution function
 #fpeak: Vbias smearing effect parameter. Fraction of events which are NOT smeared. (1.0=no smearing) See EPot_Model.ipynb
-#
+#doEffs: Apply trigger and cut efficiency curves
 #Returns: n_Eee: The binned spectra of events in units of [counts/bin]
 #
-def buildAvgSimSpectrum_ee(Ebins, Evec, Yield, F, scale, doDetRes=True, fpeak=1.0):
+def buildAvgSimSpectrum_ee(Ebins, Evec, Yield, F, scale, doDetRes=True, fpeak=1.0, doEffs=True):
 
     V=const.V
     G_NTL=const.G_NTL
@@ -489,7 +565,8 @@ def buildAvgSimSpectrum_ee(Ebins, Evec, Yield, F, scale, doDetRes=True, fpeak=1.
     #Trigger Efficiency
     ###############
     #Function of calculated using true energies, before detector resolution effects
-    n_Eee*=eff.trigEff(Ebin_ctr)
+    if doEffs:
+        n_Eee*=eff.trigEff(Ebin_ctr)
 
     ###############
     #Detector Resolution
@@ -504,7 +581,8 @@ def buildAvgSimSpectrum_ee(Ebins, Evec, Yield, F, scale, doDetRes=True, fpeak=1.
     #Efficiencies
     ###############
     #Use the fitted, smoothed total cut efficiency curve
-    n_Eee*=eff.cutEffFit(Ebin_ctr)*scale
+    if doEffs:
+        n_Eee*=eff.cutEffFit(Ebin_ctr)*scale
 
     return n_Eee
 
@@ -522,10 +600,11 @@ def buildAvgSimSpectrum_ee(Ebins, Evec, Yield, F, scale, doDetRes=True, fpeak=1.
 #scale: Scaling of spectrum 
 #doDetRes: whether to apply detector resolution function
 #fpeak: Vbias smearing effect parameter. Fraction of events which are NOT smeared. (1.0=no smearing) See EPot_Model.ipynb
+#doEffs: Apply trigger and cut efficiency curves
 #
 #Returns: n_Eee: The binned spectra of events in units of [counts/bin]
 #
-def buildAvgSimSpectrum_ee_composite(Ebins, Evec, dEvec, Yield, F, scale, doDetRes=True, fpeak=1.0):
+def buildAvgSimSpectrum_ee_composite(Ebins, Evec, dEvec, Yield, F, scale, doDetRes=True, fpeak=1.0, doEffs=True):
 
     V=const.V
     G_NTL=const.G_NTL
@@ -589,7 +668,8 @@ def buildAvgSimSpectrum_ee_composite(Ebins, Evec, dEvec, Yield, F, scale, doDetR
     #Trigger Efficiency
     ###############
     #Function of calculated using true energies, before detector resolution effects
-    n_Eee*=eff.trigEff(Ebin_ctr)
+    if doEffs:
+        n_Eee*=eff.trigEff(Ebin_ctr)
 
     ###############
     #Detector Resolution
@@ -605,7 +685,8 @@ def buildAvgSimSpectrum_ee_composite(Ebins, Evec, dEvec, Yield, F, scale, doDetR
     ###############
     #Analysis cut efficiencies
     #Use the fitted, smoothed total cut efficiency curve
-    n_Eee*=eff.cutEffFit(Ebin_ctr)*scale
+    if doEffs:
+        n_Eee*=eff.cutEffFit(Ebin_ctr)*scale
 
     return n_Eee
 
