@@ -544,11 +544,11 @@ def buildAvgSimSpectrum_ee_composite(Ebins, Evec, dEvec, Yield, F, scale, doDetR
     
     #Ionization energy available in each step
     if isinstance(Yield,(float,int)):
-        Evec_eion = Evec*Yield - (Evec-dEvec)*Yield*(Evec-dEvec)
+        Evec_eion = Evec*Yield - (Evec-dEvec)*Yield
     else:
         Evec_eion = Evec*Yield.calc(Evec) - (Evec-dEvec)*Yield.calc(Evec-dEvec)
 
-    #Electon-equivalent
+    #Electron-equivalent
     EeeVec = (dEvec + Evec_eion*V/eps) / G_NTL
     #Fano resolution in eVee
     #TODO: This is not quite correct if dE/E<<1, but may be close enough since that's rare?
