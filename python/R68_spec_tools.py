@@ -544,7 +544,7 @@ def buildAvgSimSpectrum_ee_composite(Ebins, Evec, dEvec, Yield, F, scale, doDetR
     
     #Ionization energy available in each step
     if isinstance(Yield,(float,int)):
-        Evec_eion = Evec*Yield*Evec - (Evec-dEvec)*Yield*(Evec-dEvec)
+        Evec_eion = Evec*Yield - (Evec-dEvec)*Yield*(Evec-dEvec)
     else:
         Evec_eion = Evec*Yield.calc(Evec) - (Evec-dEvec)*Yield.calc(Evec-dEvec)
 
