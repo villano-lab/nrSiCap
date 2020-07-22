@@ -75,6 +75,18 @@ def dtrigburstEff(E):
 #def dtrigburstEff_bkg(E):
 #    return 0.0021*np.ones_like(E)
 
+#Estimated maximum leakage spectrum of burst events
+# Fit performed in burst_cut.ipynb
+# Assumes uniform bins and full measured PuBe stats
+def dtrigburstLeak(E):
+    def fburst(E,A,E0,Ec,Efall):
+        hump=(E>E0)*(np.exp(-(E-E0)/Efall)-np.exp(-(E-E0)/Ec))
+        hump=A*hump/(np.max(hump))
+        return hump
+    dE0=10 #[eV] Energy binning in the fit
+    dE=E[1]-E[0] #[eV] Scale by binning ratio to maintain (roughly) the same integral
+    return (dE/dE0)*fburst(E, 98.74073987, 51.7184786, 3.09597772, 39.05670093)
+
 #Spikey Cut Efficiency
 with open('data/r68_PuBe_cspike_eff_1keV.txt') as feffspike:
     data_effspike = np.asarray([x.split() for x in feffspike.readlines()[1:]],dtype=np.float)
@@ -173,12 +185,28 @@ def effFit_func(x,x0,sigma,a,b):
 
 #Best fit values to total cut efficiency as calculated in R68_eff_plot.ipynb
 #PuBe
+#def cutEffFit(E):
+#    return effFit_func(E, 2.51808946e+01, 1.49032295e+01, 4.66827422e-01, 4.43609440e-05)
+#def dcutEffFit(E):
+#    return 0.03430284917913029
+
 def cutEffFit(E):
-    return effFit_func(E, 2.51808946e+01, 1.49032295e+01, 4.66827422e-01, 4.43609440e-05)
+    eff=np.ones_like(E)
+    eff[(E>=50)&(E<1000)]=effFit_func(E[(E>=50)&(E<1000)], 2.16419228e+01, 1.61938240e+01, 4.28262762e-01, 3.17895378e-05)
+    eff[E>=1000]=0.51633498
+    return eff
 def dcutEffFit(E):
-    return 0.03430284917913029
+    deff=np.zeros_like(E)
+    deff[(E>=50)&(E<1000)]=0.02975340974950752
+    deff[E>=1000]=0.01294113
+    return deff
+
 #Bkg
+#def cutEffFit_bkg(E):
+#    return effFit_func(E, 3.62217815e+01, 1.19451268e+01, 7.13281258e-01, 7.41533280e-06)
+#def dcutEffFit_bkg(E):
+#    return 0.16433241774395257
 def cutEffFit_bkg(E):
-    return effFit_func(E, 3.62217815e+01, 1.19451268e+01, 7.13281258e-01, 7.41533280e-06)
+    return effFit_func(E, 4.23508507e+01,  7.61590223e+00,  7.14511426e-01, -5.10367727e-06)
 def dcutEffFit_bkg(E):
-    return 0.16433241774395257
+    return 0.16643841685131444

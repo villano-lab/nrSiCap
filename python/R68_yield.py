@@ -19,8 +19,8 @@ eVTOeps = 11.5/1000*14**(-7./3)
 ################################################################################
 class Yield:
     def __init__(self, model, pars):
-        self.models={'Lind': 'Lindhard','Chav': 'Chavarria', 'Sor': 'Sorenson', 'Damic': 'Extrapolated Damic model', 'AC': 'Adiabatic Correction', 'pchip':'Lindhard+PCHIP', 'Shexp':'Lindhard+shelf+exp'}
-        self.model_npar={'Lind': 1,'Chav': 2, 'Sor': 2, 'Damic': 0, 'AC': 2, 'pchip':5, 'Shexp':5}
+        self.models={'Lind': 'Lindhard','Chav': 'Chavarria', 'Sor': 'Sorenson', 'Damic': 'Extrapolated Damic model', 'AC': 'Adiabatic Correction', 'pchip':'Lindhard+PCHIP', 'Shexp':'Lindhard+shelf+exp', 'Pol3':'3-degree Polynomial', 'Pol4':'4-degree Polynomial'}
+        self.model_npar={'Lind': 1,'Chav': 2, 'Sor': 2, 'Damic': 0, 'AC': 2, 'pchip':5, 'Shexp':5, 'Pol3':3, 'Pol4':4}
         self.set_model(model)
         self.set_pars(pars)
         
@@ -80,6 +80,10 @@ class Yield:
             return yLind_pchip(Er,*(self.pars),self.f_pchip)
         elif self.model=='Shexp':
             return yLind_shelf_exp(Er,*(self.pars))
+        elif self.model=='Pol3':
+            return yPol3(Er,*(self.pars))
+        elif self.model=='Pol4':
+            return yPol4(Er,*(self.pars))
         else:
             print('Error: '+str(self.model)+' yield model not defined')
             return None
@@ -194,3 +198,14 @@ def yLind_shelf_exp(Er,k,Yshelf,Ec,dE,alpha):
 
 #a spline extrapolation to DAMIC data
 yDamic = np.vectorize(dy.getDAMICy())
+
+#Simple polynomials
+def yPol3(E,p0,p1,p2):
+    poly = np.poly1d((p2,p1,p0))(E)
+    poly[poly<0]=0
+    return poly
+
+def yPol4(E,p0,p1,p2,p3):
+    poly = np.poly1d((p3,p2,p1,p0))(E)
+    poly[poly<0]=0
+    return poly
