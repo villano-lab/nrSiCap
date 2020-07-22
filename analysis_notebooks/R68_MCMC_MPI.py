@@ -48,8 +48,8 @@ os.environ["OMP_NUM_THREADS"] = "1"
 ################################################################################
 #Construct a dictionary to store all the MCMC fit parameters and results
         ########################## Data Settings ##########################
-mcmc_data={'g4_load_frac':0.1,
-          'cap_load_frac':0.1,
+mcmc_data={'g4_load_frac':1.0,
+          'cap_load_frac':1.0,
           'cap_sim_file':'/data/chocula/villaa/cascadeSimData/si28_R68_400k.pkl',
           'cap_rcapture':0.161,
            ########################## Spectrum Settings ##########################
@@ -59,12 +59,12 @@ mcmc_data={'g4_load_frac':0.1,
            'Efit_max':1750, #[eVee]
            'spectrum_units':'reco-rate', #One of {'counts', 'reco-rate'}
            ########################## Yield Model Settings ##########################
-           'Ymodel':'Lind',
-           'labels': [r'k', r'$F_{NR}$', r'$scale_{G4}$', r'$scale_{ng}$'],
-           'theta_bounds': ((0.05,0.3),(0,30),(0.1,10),(0.1,10)),
-           #'Ymodel':'Chav',
-           #'labels': [r'k', r'$a^{-1}$', r'$F_{NR}$', r'$scale_{G4}$', r'$scale_{ng}$'],
-           #'theta_bounds': ((0.05,0.3),(0,1e3),(0,30),(0.1,10),(0.1,10)),
+           #'Ymodel':'Lind',
+           #'labels': [r'k', r'$F_{NR}$', r'$scale_{G4}$', r'$scale_{ng}$'],
+           #'theta_bounds': ((0.05,0.3),(0,30),(0.1,10),(0.1,10)),
+           'Ymodel':'Chav',
+           'labels': [r'k', r'$a^{-1}$', r'$F_{NR}$', r'$scale_{G4}$', r'$scale_{ng}$'],
+           'theta_bounds': ((0.05,0.3),(0,2e3),(0,30),(0.1,10),(0.1,10)),
            #'Ymodel':'Sor',
            #'labels': [r'k', r'q', r'$F_{NR}$', r'$scale_{G4}$', r'$scale_{ng}$'],
            #'theta_bounds': ((0.05,0.3),(0,3e-2),(0,30),(0.1,10),(0.1,10)),
@@ -77,18 +77,21 @@ mcmc_data={'g4_load_frac':0.1,
            #'Ymodel':'Shexp',
            #'labels': [r'k', 'Yshelf', 'Ec', 'dE', 'alpha', r'$F_{NR}$', r'$scale_{G4}$', r'$scale_{ng}$'],
            #'theta_bounds': ((0.05,0.3),(0,0.3),(0,1e3),(0,1e3),(0,100),(0,30),(0.1,10),(0.1,10)),
+           #'Ymodel':'Pol3',
+           #'labels': [r'p0', r'p1', r'p2', r'$F_{NR}$', r'$scale_{G4}$', r'$scale_{ng}$'],
+           #'theta_bounds': ((-0.5,0.5),(-5e-4,5e-4),(-5e-7,5e-7),(0,30),(0.1,10),(0.1,10)),
            ########################## Likelihood Settings ##########################
            'likelihood':'SNorm', #One of {'Pois', 'Norm', 'SNorm'} Only SNorm accepts sigmas, others assume Pois stats
            ########################## Uncertainty Settings ##########################
            'doDetRes': True, #Include detector resolution effects
            'fpeak':0.753, #0.753 -- 1.0
-           'cLERate':'Nom',#LowEnergyRate cut level {'Low','Nom','Hi'}
-           'doEffsyst':True, #Include systematics from cut efficiencies (w/o LERate cut uncertatinty)
-           'doLERsyst':True, #Include the systematics from the LERate cut in the measured PDF
+           'doEffsyst':False, #Include systematics from cut efficiencies
+           'doBurstLeaksyst':False, #Include burst cut leakage systematic
            ########################## MCMC Settings ##########################
            'nwalkers':128,
-           'ndim':4, #Choose to match total # of params
-           #'ndim':5,
+           #'ndim':4, #Choose to match total # of params (should just do this automatically elsewhere)
+           'ndim':5,
+           #'ndim':6,
            #'ndim':8,
            'nstep':5000,
            'guesses':'Uniform', #Can either be uniform or shape (nwalkers, ndim),
@@ -117,13 +120,13 @@ spec_bounds=(np.digitize(E_lim_min,Ebins)-1,np.digitize(E_lim_max,Ebins)-1)
 mcmc_data['spec_bounds']=spec_bounds
 
 #Measured spectra background subtraction
-meas=r68.load_measured(cLERate=mcmc_data['cLERate'],verbose=True)
+meas=r68.load_measured(verbose=True)
 tlive_PuBe=meas['PuBe']['tlive']
 
 #Note that N_meas may be either in counts or reconstructed rate, depending on mcmc_data['spectrum_units']
 #uncertainty is (high,low)
 N_meas,dN_meas=spec.doBkgSub(meas, Ebins, mcmc_data['Efit_min'], mcmc_data['Efit_max'],\
-                             doEffsyst=mcmc_data['doEffsyst'], doLERsyst=mcmc_data['doLERsyst'],\
+                             doEffsyst=mcmc_data['doEffsyst'], doBurstLeaksyst=mcmc_data['doBurstLeaksyst'],\
                              output=mcmc_data['spectrum_units'])
 
 if mcmc_data['likelihood']=='SNorm':

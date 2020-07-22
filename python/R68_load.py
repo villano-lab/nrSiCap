@@ -6,17 +6,22 @@ import numpy as np
 #cLERate: Type of Low Energy Rate cut used in analysis. 
 # Can be one of {'Low','Nom','Hi'} for the low, nominal, or high cut values.
 # This only affects PuBe data, as the Bkg was not changed by this cut.
-def load_measured(cLERate='Nom',verbose=True):
+#def load_measured(cLERate='Nom',verbose=True):
+def load_measured(verbose=True):
     if verbose:
         print('Loading Measured Data...')
     #Only low energy rate cut
     #with open('data/r68_n125_PuBe_cgood_final_PTOFkeV_2keV_scan_fmt.txt') as fpube:
-    
     #Extended energy rate cut, nominal burst cut values
-    with open(f'data/r68_n125_PuBe_cgood_cRate{cLERate}_PTOFkeV_2keV_scan_fmt.txt') as fpube:
+    #with open(f'data/r68_n125_PuBe_cgood_cRate{cLERate}_PTOFkeV_2keV_scan_fmt.txt') as fpube:
+    
+    #improved dN cut for bursts
+    with open(f'data/r68_n125_PuBe_cok_cdN_PTOFkeV_2keV_scan_fmt.txt') as fpube:
         dE = np.asarray([x.split() for x in fpube.readlines()],dtype=np.float)
         
-    with open('data/r68_n125_bkg_cgood_final_PTOFkeV_2keV_scan_fmt.txt') as fbknd:
+    #with open('data/r68_n125_bkg_cgood_final_PTOFkeV_2keV_scan_fmt.txt') as fbknd:
+    #No burst cut
+    with open('data/r68_n125_bkg_cok_PTOFkeV_2keV_scan_fmt.txt') as fbknd:
         dbE = np.asarray([x.split() for x in fbknd.readlines()],dtype=np.float)
 
     #Measured event energies in [eV] for PuBe (dE) and background (dbE)
