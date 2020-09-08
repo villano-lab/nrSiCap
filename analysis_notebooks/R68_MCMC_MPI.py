@@ -47,6 +47,8 @@ os.environ["OMP_NUM_THREADS"] = "1"
 #Fit Settings
 ################################################################################
 #Construct a dictionary to store all the MCMC fit parameters and results
+#These are all the settings a user will regularly change
+
         ########################## Data Settings ##########################
 mcmc_data={'g4_load_frac':1.0,
           'cap_load_frac':1.0,
@@ -216,9 +218,9 @@ def calc_log_prob(theta=[0.2, 1, 1, 1], theta_bounds=((0,1),(0,10),(0,10),(0,10)
                                          doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'],\
                                          doEffs=True)
         #(n,gamma)
-        N_ng=spec.buildAvgSimSpectrum_ee_composite(Ebins=Ebins, Evec=cap['E'], dEvec=cap['dE'], Yield=Y, F=F_NR, scale=1,\
-                                                   doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'],\
-                                                   doEffs=True)
+        N_ng=spec.buildAvgSimSpectrum_ee_composite(Ebins=Ebins, Evec=cap['E'], dEvec=cap['dE'],\
+                                                   Yield=Y, F=F_NR, scale=1, doDetRes=mcmc_data['doDetRes'],\
+                                                   fpeak=mcmc_data['fpeak'], doEffs=True)
 
         #Adjust for livetime and write efficiency
         N_pred = (N_nr*scale_g4/g4['NR']['tlive'] + 
@@ -232,9 +234,9 @@ def calc_log_prob(theta=[0.2, 1, 1, 1], theta_bounds=((0,1),(0,10),(0,10),(0,10)
                                          doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'],\
                                          doEffs=False)
         #(n,gamma)
-        N_ng=spec.buildAvgSimSpectrum_ee_composite(Ebins=Ebins, Evec=cap['E'], dEvec=cap['dE'], Yield=Y, F=F_NR, scale=1,\
-                                                   doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'],\
-                                                   doEffs=False)
+        N_ng=spec.buildAvgSimSpectrum_ee_composite(Ebins=Ebins, Evec=cap['E'], dEvec=cap['dE'],\
+                                                   Yield=Y, F=F_NR, scale=1, doDetRes=mcmc_data['doDetRes'],\
+                                                   fpeak=mcmc_data['fpeak'], doEffs=False)
         #Calculate rate
         N_pred = (N_nr*scale_g4/g4['NR']['tlive'] + 
                   N_er*scale_g4/g4['ER']['tlive'] + 
@@ -281,13 +283,13 @@ nwalkers=mcmc_data['nwalkers']
 ndim=mcmc_data['ndim']
 nstep=mcmc_data['nstep']
 
-#guesses_s = np.array([0.18, 2e-3, 3.0, 1.0, 1.0]) + np.array([1e-2, 1e-4, 1, 0.1, 0.1]) * np.random.randn(nwalkers, ndim)
-
 #Sample priors uniformly
 if mcmc_data['guesses']=='Uniform':
     bounds_low=np.array(mcmc_data['theta_bounds'])[:,0]
     bounds_hi=np.array(mcmc_data['theta_bounds'])[:,1]
     mcmc_data['guesses']=(bounds_hi-bounds_low)*np.random.random_sample((nwalkers, ndim))+bounds_low
+else:
+    print('guesses = ',mcmc_data['guesses'],' not yet implemented')
 
 with MPIPool() as pool:
     if not pool.is_master():
@@ -297,8 +299,8 @@ with MPIPool() as pool:
     if mcmc_data['moves']=='Default':
         sampler = emcee.EnsembleSampler(nwalkers, ndim, Fit_helper, pool=pool)
     elif mcmc_data['moves']=='DE8020':
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, Fit_helper, pool=pool,
-                                        moves=[(emcee.moves.DEMove(), 0.8), (emcee.moves.DESnookerMove(), 0.2)])
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, Fit_helper, pool=pool,\
+                                        moves=[(emcee.moves.DEMove(), 0.8),(emcee.moves.DESnookerMove(), 0.2)])
     else:
         print('Error: mcmc move type not specified')
         

@@ -41,7 +41,7 @@ def lp_flat(theta, bounds):
         
     #return 0.0
     
-    if (np.array(bounds)[:,0]<theta).all() and (theta<np.array(bounds)[:,1]).all():
+    if (np.array(bounds)[:,0]<=theta).all() and (theta<=np.array(bounds)[:,1]).all():
         return 0.0
     return -np.inf
 
