@@ -19,8 +19,8 @@ eVTOeps = 11.5/1000*14**(-7./3)
 ################################################################################
 class Yield:
     def __init__(self, model, pars):
-        self.models={'Lind': 'Lindhard','Chav': 'Chavarria', 'Sor': 'Sorenson', 'Damic': 'Extrapolated Damic model', 'AC': 'Adiabatic Correction', 'pchip':'Lindhard+PCHIP', 'Shexp':'Lindhard+shelf+exp', 'Pol3':'3-degree Polynomial', 'Pol4':'4-degree Polynomial'}
-        self.model_npar={'Lind': 1,'Chav': 2, 'Sor': 2, 'Damic': 0, 'AC': 2, 'pchip':5, 'Shexp':5, 'Pol3':3, 'Pol4':4}
+        self.models={'Lind': 'Lindhard','Chav': 'Chavarria', 'Sor': 'Sorenson', 'Damic': 'Extrapolated Damic model', 'AC': 'Adiabatic Correction', 'pchip':'Lindhard+PCHIP', 'Shexp':'Lindhard+shelf+exp', 'Sheco':'Lindhard+shelf+cutoff', 'Pol3':'3-degree Polynomial', 'Pol4':'4-degree Polynomial', 'CS3':'Natural cubic spline from 3 (Er,Y) points','User':'User defined'}
+        self.model_npar={'Lind': 1,'Chav': 2, 'Sor': 2, 'Damic': 0, 'AC': 2, 'pchip':5, 'Shexp':5, 'Sheco':3, 'Pol3':3, 'Pol4':4, 'CS3':6, 'User':1}
         self.set_model(model)
         self.set_pars(pars)
         
@@ -40,7 +40,7 @@ class Yield:
             print('Error: '+str(self.model)+' yield model takes '+str(self.model_npar[self.model])+' parameter(s), but '+str(len(pars))+' are given.')
 
 ########################################
-    #Precalculate anything that we can
+    #Precalculate anything that we can to speed things up
     def solve(self):
         if self.model=='pchip':
             (Er0,Er1,Er2,f1)=self.pars[1:]
@@ -56,6 +56,11 @@ class Yield:
                 return False
             
             self.f_pchip = PchipInterpolator(Er_ad, f_ad)
+            return True
+        elif self.model=='CS3':
+            #Natural cubic splines through 3 points: (Er1, Y1), (Er2,Y2), (Er3,Y3)
+            (Er1, Y1, Er2, Y2, Er3, Y3) = self.pars
+            self.f_cs = CubicSpline([Er1, Er2, Er3], [Y1, Y2, Y3], bc_type='natural')
             return True
         else:
             return True
@@ -80,10 +85,16 @@ class Yield:
             return yLind_pchip(Er,*(self.pars),self.f_pchip)
         elif self.model=='Shexp':
             return yLind_shelf_exp(Er,*(self.pars))
+        elif self.model=='Sheco':
+            return yLind_shelf_co(Er,*(self.pars))
         elif self.model=='Pol3':
             return yPol3(Er,*(self.pars))
         elif self.model=='Pol4':
             return yPol4(Er,*(self.pars))
+        elif self.model=='CS3':
+            return yCS(Er,self.f_cs)
+        elif self.model=='User':
+            return self.pars[0](Er)
         else:
             print('Error: '+str(self.model)+' yield model not defined')
             return None
@@ -196,6 +207,16 @@ def yLind_shelf_exp(Er,k,Yshelf,Ec,dE,alpha):
 
     return (Er>Ec)*(1-np.exp(-(Er-Ec)/dE))*np.power(np.power(yL,alpha)+np.power(Yshelf,alpha),1/alpha)
 
+#Homebrew Lindhard with shelf and cutoff at low energy
+#k: Lindhard k
+#Yshelf: Value of flat yield shelf
+#Ec: cutoff energy at which Y->0 [eV]
+def yLind_shelf_co(Er,k,Yshelf,Ec):
+    y=yLind(Er, k)
+    y[y<Yshelf]=Yshelf
+    y[Er<Ec]=0
+    return y
+
 #a spline extrapolation to DAMIC data
 yDamic = np.vectorize(dy.getDAMICy())
 
@@ -209,3 +230,10 @@ def yPol4(E,p0,p1,p2,p3):
     poly = np.poly1d((p3,p2,p1,p0))(E)
     poly[poly<0]=0
     return poly
+
+#TODO: Incorporate these into analysis
+#Cubic Splines
+def yCS(E, f_cs):
+    y=f_cs(E)
+    y[y<0]=0
+    return y

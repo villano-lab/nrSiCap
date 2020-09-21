@@ -496,9 +496,9 @@ def buildAvgSimSpectrum_ee(Ebins, Evec, Yield, F, scale, doDetRes=True, fpeak=1.
     ###############
     #Use the fitted, smoothed total cut efficiency curve
     if doEffs:
-        n_Eee*=eff.cutEffFit(Ebin_ctr)*scale
+        n_Eee*=eff.cutEffFit(Ebin_ctr)
 
-    return n_Eee
+    return n_Eee*scale
 
 ###########################################################################
 #Apply yield, resolution, efficiencies etc. to simulated composite NR hit data to get an average spectrum
@@ -600,9 +600,9 @@ def buildAvgSimSpectrum_ee_composite(Ebins, Evec, dEvec, Yield, F, scale, doDetR
     #Analysis cut efficiencies
     #Use the fitted, smoothed total cut efficiency curve
     if doEffs:
-        n_Eee*=eff.cutEffFit(Ebin_ctr)*scale
+        n_Eee*=eff.cutEffFit(Ebin_ctr)
 
-    return n_Eee
+    return n_Eee*scale
 
 
 ###########################################################################
@@ -631,17 +631,19 @@ def sigma_ee(E,sigma0,B,A):
 ###########################################################################
 #Draw a value from the resolution distribution
 #Option to include effect of OF bias at low energies
-def getSmeared(E, doLowEbias=False):
+def getSmeared(E, F=0, doLowEbias=False, seed=None):
     #Params from Matt's Bkg resolution fit:
     #https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_panda:calibration#resolution_versus_energy
     sigma0=const.sigma0 #eV 
     B=const.B #This includes FANO
     # B_1=B-const.F*const.eps #Actually only true for V->inf (http://www.hep.umn.edu/cdms/cdms_restricted/K100/analysis/Peak_Widths.pdf)
-    B_1=B-const.F*const.V**2/const.eps/(1+const.V/const.eps)**2
+    B_1=B+(F-const.F)*const.V**2/const.eps/(1+const.V/const.eps)**2
     A=const.A
     
     #Ignore low energy bias for faster execution
     if not doLowEbias:
+        if seed is not None:
+            np.random.seed(seed)
         return np.random.normal(E,sigma_ee(E,sigma0,B_1,A),np.shape(E))
     else:
         #Low energy OF bias
