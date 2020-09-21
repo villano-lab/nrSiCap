@@ -19,8 +19,8 @@ eVTOeps = 11.5/1000*14**(-7./3)
 ################################################################################
 class Yield:
     def __init__(self, model, pars):
-        self.models={'Lind': 'Lindhard','Chav': 'Chavarria', 'Sor': 'Sorenson', 'Damic': 'Extrapolated Damic model', 'AC': 'Adiabatic Correction', 'pchip':'Lindhard+PCHIP', 'Shexp':'Lindhard+shelf+exp', 'Pol3':'3-degree Polynomial', 'Pol4':'4-degree Polynomial', 'CS3':'Natural cubis spline from 3 (Er,Y) points'}
-        self.model_npar={'Lind': 1,'Chav': 2, 'Sor': 2, 'Damic': 0, 'AC': 2, 'pchip':5, 'Shexp':5, 'Pol3':3, 'Pol4':4, 'CS3':6}
+        self.models={'Lind': 'Lindhard','Chav': 'Chavarria', 'Sor': 'Sorenson', 'Damic': 'Extrapolated Damic model', 'AC': 'Adiabatic Correction', 'pchip':'Lindhard+PCHIP', 'Shexp':'Lindhard+shelf+exp', 'Sheco':'Lindhard+shelf+cutoff', 'Pol3':'3-degree Polynomial', 'Pol4':'4-degree Polynomial', 'CS3':'Natural cubic spline from 3 (Er,Y) points','User':'User defined'}
+        self.model_npar={'Lind': 1,'Chav': 2, 'Sor': 2, 'Damic': 0, 'AC': 2, 'pchip':5, 'Shexp':5, 'Sheco':3, 'Pol3':3, 'Pol4':4, 'CS3':6, 'User':1}
         self.set_model(model)
         self.set_pars(pars)
         
@@ -85,12 +85,16 @@ class Yield:
             return yLind_pchip(Er,*(self.pars),self.f_pchip)
         elif self.model=='Shexp':
             return yLind_shelf_exp(Er,*(self.pars))
+        elif self.model=='Sheco':
+            return yLind_shelf_co(Er,*(self.pars))
         elif self.model=='Pol3':
             return yPol3(Er,*(self.pars))
         elif self.model=='Pol4':
             return yPol4(Er,*(self.pars))
         elif self.model=='CS3':
             return yCS(Er,self.f_cs)
+        elif self.model=='User':
+            return self.pars[0](Er)
         else:
             print('Error: '+str(self.model)+' yield model not defined')
             return None
@@ -202,6 +206,16 @@ def yLind_shelf_exp(Er,k,Yshelf,Ec,dE,alpha):
     yL=yLind(Er, k)
 
     return (Er>Ec)*(1-np.exp(-(Er-Ec)/dE))*np.power(np.power(yL,alpha)+np.power(Yshelf,alpha),1/alpha)
+
+#Homebrew Lindhard with shelf and cutoff at low energy
+#k: Lindhard k
+#Yshelf: Value of flat yield shelf
+#Ec: cutoff energy at which Y->0 [eV]
+def yLind_shelf_co(Er,k,Yshelf,Ec):
+    y=yLind(Er, k)
+    y[y<Yshelf]=Yshelf
+    y[Er<Ec]=0
+    return y
 
 #a spline extrapolation to DAMIC data
 yDamic = np.vectorize(dy.getDAMICy())

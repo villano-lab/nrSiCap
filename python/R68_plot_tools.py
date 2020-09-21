@@ -118,3 +118,25 @@ def plotOldYs(ax, **kwargs):
                 label='CDMS II', **kwargs)
     
     
+#A function to load previous yield measurement data
+#TODO: include more data...
+def get_old_Y_data(label='izr'):
+    if label.lower()=='izr':
+        #Izraelevitch
+        ##########
+        #E_ion	dE_ion_sys	E_NR	dE_NR_stat	dE_NR_sys	Y	dY_stat	dY_sys
+        izr_data = pd.read_csv("data/Izraelevitch_17.txt", sep='\t')
+        #convert to numpy arrays, [eV]
+        izr_data['E_NR']=np.asarray(izr_data['E_NR'])*1000
+        izr_data['dE_NR_stat']=np.asarray(izr_data['dE_NR_stat'])*1000
+        izr_data['dE_NR_sys']=np.asarray(izr_data['dE_NR_sys'])*1000  
+        izr_data['Y']=np.asarray(izr_data['Y'])
+        izr_data['dY_stat']=np.asarray(izr_data['dY_stat'])
+        izr_data['dY_sys']=np.asarray(izr_data['dY_sys'])
+        #Combine errors
+        izr_data['dE_NR_tot']=np.sqrt(izr_data['dE_NR_stat']**2 + izr_data['dE_NR_sys']**2)
+        izr_data['dY_tot']=np.sqrt(izr_data['dY_stat']**2 + izr_data['dY_sys']**2)
+        
+        return {'Enr':np.array(izr_data['E_NR']),'Y':np.array(izr_data['Y']),'dEnr':np.array(izr_data['dE_NR_tot']),'dY':np.array(izr_data['dY_tot'])}
+    else:
+        print("D'oh! We didn't include that one yet...")
