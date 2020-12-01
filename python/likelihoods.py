@@ -42,7 +42,8 @@ def lp_flat(theta, bounds):
     #return 0.0
     
     if (np.array(bounds)[:,0]<=theta).all() and (theta<=np.array(bounds)[:,1]).all():
-        return 0.0
+        #return 0.0
+        return np.sum(-np.log(np.array(bounds)[:,1]-np.array(bounds)[:,0]))
     return -np.inf
 
 #Log of normal prior distribution

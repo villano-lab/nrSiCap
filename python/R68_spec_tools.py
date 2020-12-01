@@ -763,7 +763,7 @@ def expdelta_int(x0,fpeak,B, bins):
 #  Then we plot the best fit and shade between the upper and lower lines.
 # For backwards compatibility with some notebooks, if N_tot is not included, it, 
 #  and the corresponding uncertainty, are calculated from the sum of N_nr, N_er, and N_ng
-def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, N_tot=None, xrange=(0,1e3), yrange=(0,1e-2), yscale='linear', thresh=None, axis=None, wLeg=True, wResidual=False, yrange_res=(-1e-3,1e-3)):
+def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, N_tot=None, xrange=(0,1e3), yrange=(0,1e-2), yscale='linear', thresh=None, axis=None, wLeg=True, grid=True, wResidual=False, yrange_res=(-1e-3,1e-3)):
     
     #######################
     #Plotting styles
@@ -895,11 +895,14 @@ def plotSpectra(E_bins, N_nr, N_er, N_ng, N_meas, dN_meas, N_tot=None, xrange=(0
     ax.set_yscale(yscale)
     ax.set_xlim(*xrange)
     ax.set_ylim(*yrange)
-    ax.set_xlabel('total deposited energy [eV$_{\\mathrm{ee}}$]',**axis_font)
+    #ax.set_xlabel('total deposited energy [eV$_{\\mathrm{ee}}$]',**axis_font)
+    ax.set_xlabel('Energy [eV$_{\\mathrm{ee}}$]',**axis_font)
     #axis.set_ylabel('counts',**axis_font)
-    ax.set_ylabel('Events/bin/s',**axis_font)
-    ax.grid(True)
-    ax.yaxis.grid(True,which='minor',linestyle='--')
+    #ax.set_ylabel('Events/bin/s',**axis_font)
+    ax.set_ylabel('Rate [1/bin/s]',**axis_font)
+    if grid:
+        ax.grid(True)
+        ax.yaxis.grid(True,which='minor',linestyle='--')
     if wLeg:
         ax.legend(loc=1,prop={'size':22})
 

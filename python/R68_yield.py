@@ -10,11 +10,17 @@ from scipy.special import erf
 from scipy.interpolate import CubicSpline, PchipInterpolator
 import sys
 sys.path.append('../python/')
+import os
 import damic_y as dy
 
 
 #Conversion from eV to unitless energy, epsilon as defined in Lindhard yield
 eVTOeps = 11.5/1000*14**(-7./3)
+
+#Reference to this file
+def package_path(*paths, package_directory=os.path.dirname(os.path.abspath(__file__))):
+    return os.path.join(package_directory, *paths)
+
 
 ################################################################################
 class Yield:
@@ -218,7 +224,7 @@ def yLind_shelf_co(Er,k,Yshelf,Ec):
     return y
 
 #a spline extrapolation to DAMIC data
-yDamic = np.vectorize(dy.getDAMICy())
+yDamic = np.vectorize(dy.getDAMICy(file=package_path()+'/../analysis_notebooks/data/DAMIC_siyield_allerr.txt'))
 
 #Simple polynomials
 def yPol3(E,p0,p1,p2):
