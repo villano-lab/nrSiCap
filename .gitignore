@@ -7,3 +7,6 @@ analysis_notebooks/figures/mcmc
 analysis_notebooks/figures/
 analysis_notebooks/data/mcmc*
 .vscode
+
+#Large files
+analysis_notebooks/data/v3_400k.pkl
