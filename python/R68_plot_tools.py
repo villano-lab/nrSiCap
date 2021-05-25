@@ -35,7 +35,33 @@ def plotOldYs(ax, datasets=['chav','izr','dough','gerb','zech','satt','agnese'],
         #Plot
         ax.errorbar(Enr,Y, xerr=dEnr, yerr=dY, label=label, **kwargs)
 
-    
+
+def plotOldYs_noSat(ax, datasets=['chav','izr','dough','gerb','zech','agnese'],
+              labels=['Chavarria','Izraelevitch','Dougherty','Gerbier','Zecher','Agnese'], **kwargs):
+
+    for ds,label in zip(datasets,labels):
+        #Load data
+        data=get_old_Y_data(label=ds)
+        
+        Enr=data['Enr']
+        Y=data['Y']
+        
+        if 'dEnr' in data.keys():
+            dEnr=data['dEnr']
+        else:
+            dEnr=None
+            
+        if 'dY' in data.keys():
+            dY=data['dY']
+        elif 'dY-' in data.keys():
+            dY=np.array([data['dY-'],data['dY+']])
+        else:
+            dY=None
+            
+        #Plot
+        ax.errorbar(Enr,Y, xerr=dEnr, yerr=dY, label=label, **kwargs)
+        
+        
 #A function to load previous yield measurement data
 def get_old_Y_data(label='izr'):
     
