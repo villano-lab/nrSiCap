@@ -13,4 +13,3 @@ analysis_notebooks/data/mcmc*
 
 #Large files
 analysis_notebooks/data/v3_400k.pkl
-analysis_notebooks/data/intmeth_scan_v4.p
