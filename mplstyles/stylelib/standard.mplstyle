@@ -2,6 +2,7 @@
 #https://matplotlib.org/users/customizing.html
 #matplotlib.rc('figure', figsize=(3.4, 3.4*(4/6)))
 lines.linewidth : 2
+figure.figsize : 16, 12
 
 #ticks
 xtick.top : False
@@ -29,5 +30,7 @@ ytick.labelsize : 40
 #errorbar.capsize : 3
 
 #fontsizes
-legend.fontsize : 40 
+legend.fontsize : 35 
+legend.title_fontsize : 40
 axes.labelsize : 50
+figure.titlesize : 50
