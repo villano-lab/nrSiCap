@@ -229,30 +229,29 @@ def BSsubtractSlope(h, iStart, nPre, nPost):
 ##Rescale a trace's x (time) axis
 ##h is the existing trace, hNew will contain the rescaled version
 ##Bin centers will start with t0 and be separated by dt.
-def rescaleX(h, t0, dt):
-  nBins = h.GetNbinsX()
-  hNew = ROOT.TH1D(h.GetName(),h.GetTitle(),nBins,t0-dt/2,t0+dt*(nBins-0.5))
-  i = 1
-  while(i<=nBins):
-    hNew.SetBinContent(i,h.GetBinContent(i))
+def rescaleX(h, t0, dt=None):
+  if dt != None:
+      nBins = h.GetNbinsX()
+      hNew = ROOT.TH1D(h.GetName(),h.GetTitle(),nBins,t0-dt/2,t0+dt*(nBins-0.5))
+      i = 1
+      while(i<=nBins):
+        hNew.SetBinContent(i,h.GetBinContent(i))
+        i += 1
+      return hNew
+  else: 
+    nBins = h.GetNbinsX()
+    low = f*h.GetBinLowEdge(1)
+    hi = f*h.GetBinLowEdge(nBins+1)
+    hNew = ROOT.TH1D(h.GetName(),h.GetTitle(),nBins,low,hi)
+    i = 1
+    while(i<=nBins):
+      hNew.SetBinContent(i,h.GetBinContent(i))
     i += 1
   return hNew
-
 ##Rescale a trace's x axis
 ##h is the existing trace, hNew will contain the rescaled version
 ##scale x bins by factor f
 ##Assumes constant bin widths
-def rescaleX(h, f):
-  nBins = h.GetNbinsX()
-  low = f*h.GetBinLowEdge(1)
-  hi = f*h.GetBinLowEdge(nBins+1)
-  hNew = ROOT.TH1D(h.GetName(),h.GetTitle(),nBins,low,hi)
-  i = 1
-  while(i<=nBins):
-    hNew.SetBinContent(i,h.GetBinContent(i))
-    i += 1
-  return hNew
-
 
 ##calculate a trace's beginning baseline
 def getBSpre(h, binLow, binHi):
