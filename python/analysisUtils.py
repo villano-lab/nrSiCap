@@ -5,6 +5,7 @@
 #If I do it'll probably be numpy or something easy.
 
 import uproot
+import numpy as np
 
 #Workaround for ROOT path missing
 import sys
@@ -231,17 +232,15 @@ def BSsubtractSlope(h, iStart, nPre, nPost):
 ##Bin centers will start with t0 and be separated by dt.
 def rescaleX(h, t0, dt=None):
   if dt != None:
-      nBins = h.GetNbinsX()
-      hNew = ROOT.TH1D(h.GetName(),h.GetTitle(),nBins,t0-dt/2,t0+dt*(nBins-0.5))
-      i = 1
-      while(i<=nBins):
-        hNew.SetBinContent(i,h.GetBinContent(i))
-        i += 1
+      nBins = len(h) #nBins = h.GetNbinsX()
+      hNew = np.linspace(t0-dt/2,dt*(nBins-0.5),num=nBins-1,endpoint=False)
+      #hNew = np.histogram(h[0], nBins, range=(t0-dt/2,dt*(nBins-0.5)))#ROOT.TH1D(h.GetName(),h.GetTitle(),nBins,t0-dt/2,t0+dt*(nBins-0.5))
       return hNew
+    #Above should work, below needs work.
   else: 
-    nBins = h.GetNbinsX()
-    low = f*h.GetBinLowEdge(1)
-    hi = f*h.GetBinLowEdge(nBins+1)
+    nBins = len(h[1]) #h.GetNbinsX()
+    low = t0*h.GetBinLowEdge(1)
+    hi = t0*h.GetBinLowEdge(nBins+1)
     hNew = ROOT.TH1D(h.GetName(),h.GetTitle(),nBins,low,hi)
     i = 1
     while(i<=nBins):
@@ -252,6 +251,7 @@ def rescaleX(h, t0, dt=None):
 ##h is the existing trace, hNew will contain the rescaled version
 ##scale x bins by factor f
 ##Assumes constant bin widths
+#Python can't do 2 of the same name like C++ can, so combined them with an if/else above.
 
 ##calculate a trace's beginning baseline
 def getBSpre(h, binLow, binHi):
