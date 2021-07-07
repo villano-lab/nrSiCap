@@ -13,7 +13,7 @@ analysis_notebooks/data/mcmc*
 
 #Large files
 analysis_notebooks/data/v3_400k.pkl
-analysis_notebooks/data/byseries/07180924_1710_traces.root
+analysis_notebooks/data/byseries/07180924_1710/07180924_1710_traces.root
 
 #Reference files
 analysisUtils.c
