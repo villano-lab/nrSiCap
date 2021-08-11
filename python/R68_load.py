@@ -137,7 +137,7 @@ def load_G4(load_frac=1.0):
 #rcapture: expected capture rate, used to set livetime
 # See calculations in: https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_n125:full_signal_fit#efficiencies_and_live_time
 #load_frac: fraction of simulated events to load. Adjusts livetime appropriately
-def load_simcap(file='/data/chocula/villaa/cascadeSimData/normsi_fast_200k.pkl', rcapture=0.218, load_frac=1.0):
+def load_simcap(file='data/v3_400k.pkl', rcapture=0.218, load_frac=1.0):
     print('Loading (n,gamma) Data...')
     
     import pickle as pkl
@@ -163,5 +163,30 @@ def load_simcap(file='/data/chocula/villaa/cascadeSimData/normsi_fast_200k.pkl',
     
     #https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_n125:full_signal_fit&#efficiencies_and_live_time
     tlive_ng = load_frac*cdata['totalevents']/rcapture #[s]
+    
+    return {"E":E_ng, "dE":dE_ng, "N":N, "tlive":tlive_ng}
+
+def load_simcap_old(lifetimes='fast', Ncascades='200k'):
+    print('Loading (n,gamma) Data...')
+    #'fast' or 'slow'
+    #'2M' or '200k'
+    
+    import pickle as pkl
+    
+    #load up some cascade simulated data
+    with open('data/normsi_{0}_{1}.pkl'.format(lifetimes, Ncascades),'rb') as readFile:
+          cdata=pkl.load(readFile,encoding='latin1')
+
+    #print(cdata.keys())
+    print(cdata['totalevents'])
+
+    #Use only the events where the gamma escapes
+    #Assume those where it doesn't escape end up at high Eee
+    E_ng = cdata['E'][cdata['cEscape']]
+    dE_ng = cdata['delE'][cdata['cEscape']]
+    N = cdata['n'][cdata['cEscape']]
+    
+    #https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_n125:full_signal_fit&#efficiencies_and_live_time
+    tlive_ng = cdata['totalevents']/0.218 #[s]
     
     return {"E":E_ng, "dE":dE_ng, "N":N, "tlive":tlive_ng}

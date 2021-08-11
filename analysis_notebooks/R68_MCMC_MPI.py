@@ -54,7 +54,7 @@ mcmc_data={'g4_load_frac':0.1,
           'cap_load_frac':0.1,
           #'cap_sim_file':'/data/chocula/villaa/cascadeSimData/si28_R68_400k.pkl',
           #'cap_rcapture':0.161,
-          'cap_sim_file':'/data/chocula/villaa/cascadeSimData/v3_400k.pkl',
+          'cap_sim_file':'data/v3_400k.pkl',
           'cap_rcapture':0.218,
            ########################## Spectrum Settings ##########################
           'Emax': 2000, #[eVee]
@@ -72,7 +72,7 @@ mcmc_data={'g4_load_frac':0.1,
            #'Y_model':'Sor',
            #'Y_labels': [r'k', r'q', r'$F_{NR}$'],
            #'Y_bounds': [(0.05,0.3),(0,3e-2),(0,30)],
-           'Y_model':'AC',
+           'Y_model':'Sor',
            'Y_labels': [r'k', r'$\xi$', r'$F_{NR}$'],
            'Y_bounds': [(0.05,0.3),(0,2e3),(0,30)],
            #'Y_model':'pchip',
@@ -113,7 +113,7 @@ mcmc_data={'g4_load_frac':0.1,
            'doBurstLeaksyst':True, #Include burst cut leakage systematic
            ########################## MCMC Settings ##########################
            'nwalkers':128,
-           'nstep':5000,
+           'nstep':500000,
            'guesses':'Uniform', #Can either be uniform or shape (nwalkers, ndim),
            'moves':'DE8020',#'Default': StretchMove, 'DE8020': 80/20 DEMove/DESnookerMove
            'saveMCMC':True
