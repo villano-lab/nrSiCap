@@ -251,3 +251,23 @@ def cutEffFit_bkg(E):
     return effFit_func(E, 4.23508507e+01,  7.61590223e+00,  7.14511426e-01, -5.10367727e-06)
 def dcutEffFit_bkg(E):
     return 0.16643841685131444
+
+
+#Best fit values to total cut efficiency as calculated in R68_all_eff_plot.ipynb (including trigger eff)
+#PuBe
+def allEffFit(E):
+    eff=np.ones_like(E)
+    eff[(E>=50)&(E<1000)]=effFit_func(E[(E>=50)&(E<1000)], 1.99011656e+01, 3.39505540e+01, 4.07808092e-01, 6.02809942e-05)
+    eff[E>=1000]=0.51633498
+    return eff
+def dallEffFit(E):
+    deff=np.zeros_like(E)
+    deff[(E>=50)&(E<1000)]=0.03230678598469722
+    deff[E>=1000]=0.01294113
+    return deff
+
+#Bkg
+def allEffFit_bkg(E):
+    return effFit_func(E, 2.12459234e+01,  3.66441228e+01,  7.02002489e-01, 1.40780632e-06)
+def dallEffFit_bkg(E):
+    return 0.15414768212039148 
