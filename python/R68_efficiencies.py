@@ -178,6 +178,47 @@ def dcutEff_bkg(E):
     
     return np.stack((dup,dlow))
 
+#Here is the total efficiency including the trigger efficiency
+def allEff(E):
+    return eff_tail*eff_pileup*trigburstEff(E)*spikeEff(E)*chisqEff(E)*trigEff(E)
+def allEff_bkg(E):
+    #return eff_tail_bkg*eff_pileup_bkg*trigburstEff_bkg(E)*spikeEff_bkg(E)*chisqEff_bkg(E)
+    return eff_tail_bkg*eff_pileup_bkg*spikeEff_bkg(E)*chisqEff_bkg(E)*trigEff(E)
+
+
+#Return the upper and lower total cut uncertainties
+#Adding asymm errors in quadrature is apparently naughty (https://www.slac.stanford.edu/econf/C030908/papers/WEMT002.pdf)
+#But they're not that asymmetric, so it's probably fine
+def dallEff(E):
+    
+    dupsq = (deff_write/eff_write)**2 + (deff_tail/eff_tail)**2 + (deff_pileup/eff_pileup)**2 + \
+    (dtrigburstEff(E)/trigburstEff(E))**2 + (dspikeEff(E)[0]/spikeEff(E))**2 + (dchisqEff(E)[0]/chisqEff(E))**2 + \
+    (dtrigEff(E)[0]/trigEff(E))**2
+    #dup = np.sqrt(dupsq/(cutEff(E)**2)) This isn't right at all!
+    dup = cutEff(E)*np.sqrt(dupsq)
+    
+    dlowsq = (deff_write/eff_write)**2 + (deff_tail/eff_tail)**2 + (deff_pileup/eff_pileup)**2 + \
+    (dtrigburstEff(E)/trigburstEff(E))**2 + (dspikeEff(E)[1]/spikeEff(E))**2 + (dchisqEff(E)[1]/chisqEff(E))**2 + \
+    (dtrigEff(E)[1]/trigEff(E))**2
+    #dlow = np.sqrt(dlowsq/(cutEff(E)**2))
+    dlow = cutEff(E)*np.sqrt(dlowsq)
+    
+    return np.stack((dup,dlow))
+
+def dallEff_bkg(E):
+    
+    dupsq = (deff_write_bkg/eff_write_bkg)**2 + (deff_tail_bkg/eff_tail_bkg)**2 + (deff_pileup_bkg/eff_pileup_bkg)**2 + \
+    + (dspikeEff_bkg(E)[0]/spikeEff_bkg(E))**2 + (dchisqEff_bkg(E)[0]/chisqEff_bkg(E))**2
+    #dup = np.sqrt(dupsq/(cutEff_bkg(E)**2))
+    dup = cutEff_bkg(E)*np.sqrt(dupsq)
+    
+    dlowsq = (deff_write_bkg/eff_write_bkg)**2 + (deff_tail_bkg/eff_tail_bkg)**2 + (deff_pileup_bkg/eff_pileup_bkg)**2 + \
+    + (dspikeEff_bkg(E)[1]/spikeEff_bkg(E))**2 + (dchisqEff_bkg(E)[1]/chisqEff_bkg(E))**2
+    #dlow = np.sqrt(dlowsq/(cutEff_bkg(E)**2))
+    dlow = cutEff_bkg(E)*np.sqrt(dlowsq)
+    
+    return np.stack((dup,dlow))
+
 
 #Here is a smoothed efficiency function to fit to, and use in place of, the observed efficiency curves.
 def effFit_func(x,x0,sigma,a,b):
