@@ -151,6 +151,6 @@ def getSNpars(xs,qs,w=None,mode=None,bounds=((1e-12,None),(1e-12,None),(1e-12,No
 #Fit Split-Normals to an array of measured and sigma values
 def getSNparsArray(modes,sigma_up, sigma_down):
     popt=[]
-    for i in np.arange(len(modes)):
-        popt.append(getSNpars([modes[i]-sigma_down[i],modes[i]+sigma_up[i]],[0.15865,0.84135],w=[1,1],mode=modes[i]))
+    for i,x in enumerate(modes):
+        popt.append(getSNpars([x-sigma_down[i],x+sigma_up[i]],[0.15865,0.84135],w=[1,1],mode=modes[i]))
     return np.array(popt)
