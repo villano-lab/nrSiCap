@@ -8,7 +8,10 @@ dependencies:
   - pandas
   - astropy::gammapy
   - astropy::corner
-  - matplotlib==3.4.2
+#Maybe this specific version of matplotlib has a conflict with mpld3?
+#it was causing Travis jobs to fail maybe? 
+#  - matplotlib==3.4.2
+  - matplotlib
   - mpld3
   - tabulate
   - h5py
