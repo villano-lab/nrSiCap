@@ -518,8 +518,11 @@ def buildAvgSimSpectrum_ee(Ebins, Evec, Yield, F, scale, doDetRes=True, fpeak=1.
 #
 #Returns: n_Eee: The binned spectra of events in units of [counts/bin]
 #
-def buildAvgSimSpectrum_ee_composite(Ebins, Evec, dEvec, Yield, F, scale, doDetRes=True, fpeak=1.0, doEffs=True):
+def buildAvgSimSpectrum_ee_composite(Ebins, Evec, dEvec, Yield, F, scale, doDetRes=True, fpeak=1.0, doEffs=True,verbose=False):
 
+    if verbose:
+        print('In-function yield:', Yield.pars, 'In-function F_NR:', F)
+    
     V=const.V
     G_NTL=const.G_NTL
     eps=const.eps
