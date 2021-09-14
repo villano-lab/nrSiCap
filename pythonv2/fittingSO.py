@@ -121,20 +121,22 @@ _mcmc_data={'g4_load_frac':1,
            'saveMCMC':True
           }
 
+parse_options()
+
 ################################
 ###########Functions############
 ################################
 
 def parse_options():
-    mcmc_data['labels']=mcmc_data['Y_labels']+mcmc_data['ER_par_labels']+mcmc_data['NR_par_labels']+mcmc_data['NG_par_labels']
-    mcmc_data['bounds']=mcmc_data['Y_bounds']+mcmc_data['ER_par_bounds']+mcmc_data['NR_par_bounds']+mcmc_data['NG_par_bounds']
+    _mcmc_data['labels']=_mcmc_data['Y_labels']+_mcmc_data['ER_par_labels']+_mcmc_data['NR_par_labels']+_mcmc_data['NG_par_labels']
+    _mcmc_data['bounds']=_mcmc_data['Y_bounds']+_mcmc_data['ER_par_bounds']+_mcmc_data['NR_par_bounds']+_mcmc_data['NG_par_bounds']
 
     #Special case if ER and NR are both sim and we want to use the same G4 scaling factor for both:
     #if (mcmc_data['ER_spec_model']=='sim') and (mcmc_data['NR_spec_model']=='sim'):
-    if (mcmc_data['ER_par_labels']==[r'$scale_{G4}$']) and (mcmc_data['NR_par_labels']==[r'$scale_{G4}$']):
-      mcmc_data['labels']=mcmc_data['Y_labels']+mcmc_data['NR_par_labels']+mcmc_data['NG_par_labels']
-      mcmc_data['bounds']=mcmc_data['Y_bounds']+mcmc_data['NR_par_bounds']+mcmc_data['NG_par_bounds']
+    if (_mcmc_data['ER_par_labels']==[r'$scale_{G4}$']) and (_mcmc_data['NR_par_labels']==[r'$scale_{G4}$']):
+      _mcmc_data['labels']=_mcmc_data['Y_labels']+_mcmc_data['NR_par_labels']+_mcmc_data['NG_par_labels']
+      _mcmc_data['bounds']=_mcmc_data['Y_bounds']+_mcmc_data['NR_par_bounds']+_mcmc_data['NG_par_bounds']
     
-    mcmc_data['ndim']=len(mcmc_data['labels'])
+    _mcmc_data['ndim']=len(_mcmc_data['labels'])
 
     return True
