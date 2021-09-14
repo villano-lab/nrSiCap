@@ -28,7 +28,6 @@ mpl.rc('font',family=legend_font['fontname'])
 
 import numpy as np
 import pandas as pd
-from constants import *
 from scipy.optimize import minimize
 import emcee
 
@@ -42,8 +41,8 @@ os.environ["OMP_NUM_THREADS"] = "1"
 
 refit=False
 #fit parameters
-_fitk=
-_fitq=
+_fitk=0.137
+_fitq=1e-3
 
 ################################
 ########Fit Settings ###########
@@ -121,7 +120,6 @@ _mcmc_data={'g4_load_frac':1,
            'saveMCMC':True
           }
 
-parse_options()
 
 ################################
 ###########Functions############
@@ -140,3 +138,8 @@ def parse_options():
     _mcmc_data['ndim']=len(_mcmc_data['labels'])
 
     return True
+
+################################
+######Execute on Load###########
+################################
+parse_options()
