@@ -41,8 +41,9 @@ def load_measured(keVmax=2,verbose=True):
 ############################################################################
 #load simulated Geant4 data
 #load_frac: fraction of simulated events to actually load
-def load_G4(load_frac=1.0):
-    print('Loading Geant4 Data...')
+def load_G4(load_frac=1.0,verbose=True):
+    if verbose:
+        print('Loading Geant4 Data...')
     #===============to suppress h5py warning see:
     #https://github.com/h5py/h5py/issues/961
     import warnings
@@ -58,9 +59,9 @@ def load_G4(load_frac=1.0):
     #f_er_nocap = h5py.File("/data/chocula/villaa/k100Sim_Data/captureCalhdf5/R68_gdirect_testskim_superhighstat_nocap_er_lowe.h5","r")
     f_er_nocap = h5py.File("data/R68_gdirect_testskim_stupidhighstat_nocap_er_lowe.h5","r")
     data_er_nocap = f_er_nocap['geant4/hits']
-
-    print(np.shape(data_nr_nocap))
-    print(np.shape(data_er_nocap))
+    if verbose:
+        print(np.shape(data_nr_nocap))
+        print(np.shape(data_er_nocap))
 
     #https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_n125:full_signal_fit&#efficiencies_and_live_time
     #tlive_g4 = 18.9*3600*load_frac #s
@@ -95,7 +96,8 @@ def load_G4(load_frac=1.0):
     groupbyvec=['EVnew']
 
     #NR, no capture
-    print("Loading NRs...")
+    if verbose:
+        print("Loading NRs...")
     start = time.time()
     nev_nr_nocap = int(nr_nocap_dataframe.EVnew.nunique()*load_frac)
     max_vec_nr_nocap = np.max(nr_nocap_dataframe.groupby(groupbyvec).size()[:nev_nr_nocap-1])
@@ -110,10 +112,12 @@ def load_G4(load_frac=1.0):
     evec_nr_nocap*=1e6 #[MeV]->[eV]
 
     end = time.time()
-    print(round((end - start)/60.,1),' min')
+    if verbose:
+        print(round((end - start)/60.,1),' min')
 
     #ER, no capture
-    print("Loading ERs...")
+    if verbose:
+        print("Loading ERs...")
     start = time.time()
     nev_er_nocap = int(er_nocap_dataframe.EVnew.nunique()*load_frac)
     max_vec_er_nocap = np.max(er_nocap_dataframe.groupby(groupbyvec).size()[:nev_er_nocap-1])
@@ -127,7 +131,8 @@ def load_G4(load_frac=1.0):
         nhit_er_nocap[iev] = len(d3)
     evec_er_nocap*=1e6 #[MeV]->[eV]
     end = time.time()
-    print(round((end - start)/60.,1),' min')
+    if verbose:
+        print(round((end - start)/60.,1),' min')
     
     return {"ER":{"E":evec_er_nocap, "N":nhit_er_nocap, "tlive":tlive_g4}, 
             "NR":{"E":evec_nr_nocap, "N":nhit_nr_nocap, "tlive":tlive_g4}}
@@ -137,8 +142,9 @@ def load_G4(load_frac=1.0):
 #rcapture: expected capture rate, used to set livetime
 # See calculations in: https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_n125:full_signal_fit#efficiencies_and_live_time
 #load_frac: fraction of simulated events to load. Adjusts livetime appropriately
-def load_simcap(file='data/v3_400k.pkl', rcapture=0.218, load_frac=1.0):
-    print('Loading (n,gamma) Data...')
+def load_simcap(file='data/v3_400k.pkl', rcapture=0.218, load_frac=1.0,verbose=True):
+    if verbose:
+        print('Loading (n,gamma) Data...')
     
     import pickle as pkl
     
@@ -147,7 +153,8 @@ def load_simcap(file='data/v3_400k.pkl', rcapture=0.218, load_frac=1.0):
           cdata=pkl.load(readFile,encoding='latin1')
 
     #print(cdata.keys())
-    print(cdata['totalevents'])
+    if verbose:
+        print(cdata['totalevents'])
 
     #Use only the events where the gamma escapes
     #Assume those where it doesn't escape end up at high Eee
@@ -178,7 +185,8 @@ def load_simcap_old(lifetimes='fast', Ncascades='200k'):
           cdata=pkl.load(readFile,encoding='latin1')
 
     #print(cdata.keys())
-    print(cdata['totalevents'])
+    if verbose:
+        print(cdata['totalevents'])
 
     #Use only the events where the gamma escapes
     #Assume those where it doesn't escape end up at high Eee
