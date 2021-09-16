@@ -434,10 +434,12 @@ def optll(model,initial,bounds,mcmc_args=None):
     soln = minimize(nll,initial,method='SLSQP',bounds=bounds)
     params = {} #Initialize empty dictionary
     if mcmc_data['Y_model'] == 'Sor':
-        for i,x in enumerate('k','q','F_NR','f_ER','f_NR','f_ng'):
+        for x in enumerate({'k','q','F_NR','f_ER','f_NR','f_ng'}):
+            print(x)
+            params[i]
             params.update({x:params[i]})
     elif mcmc_data['Y_model'] == 'Lind':
-        for i,x in enumerate('k','F_NR','f_ER','f_NR','f_ng'):
+        for i,x in enumerate(['k','F_NR','f_ER','f_NR','f_ng']):
             params.update({x:params[i]})
     elif mcmc_data['Y_model'] == 'Chav':
         Warn.warn("Individual variables for model 'Chav' not yet implemented. Retrieve from list (`optll()[0][i]`).")
