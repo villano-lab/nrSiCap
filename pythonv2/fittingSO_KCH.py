@@ -6,12 +6,14 @@ from scipy.optimize import minimize
 import warnings as Warn
 Warn.filterwarnings("ignore", message="numpy.dtype size changed")
 Warn.filterwarnings("ignore", message="numpy.ufunc size changed")
+np.seterr(divide='ignore', invalid='ignore')
 import sys
 sys.path.append('../../python')
 import R68_spec_tools as Spec
 import likelihoods as L
 import R68_yield as Yield
 import R68_load as Load
+import constants as Const
 
 #############################
 ########### Setup ###########
@@ -135,6 +137,24 @@ def get_mcmc_data(model=None,update=None): #Data Settings
     mcmc_data['cap']=Load.load_simcap(file=mcmc_data['cap_sim_file'], 
                     rcapture=mcmc_data['cap_rcapture'], 
                     load_frac=mcmc_data['cap_load_frac'],verbose=False)
+    
+    if mcmc_data['ER_spec_model']=='sim':
+        if mcmc_data['spectrum_units']=='counts':
+            mcmc_data['N_er'] = Spec.buildAvgSimSpectrum_ee(Ebins=mcmc_data['Ebins'], 
+                                                            Evec=mcmc_data['Evec_er'], Yield=1.0,
+                                                            F=Const.F,
+                                                            scale=1, doDetRes=mcmc_data['doDetRes'], 
+                                                            fpeak=mcmc_data['fpeak'], doEffs=True)    
+        elif mcmc_data['spectrum_units']=='reco-rate':
+            mcmc_data['N_er'] = Spec.buildAvgSimSpectrum_ee(Ebins=mcmc_data['Ebins'], 
+                                                            Evec=mcmc_data['Evec_er'], Yield=1.0, 
+                                                            F=Const.F,
+                                                            scale=1, doDetRes=mcmc_data['doDetRes'], 
+                                                            fpeak=mcmc_data['fpeak'], doEffs=False)
+    elif mcmc_data['ER_spec_model']=='flat':
+        mcmc_data['N_er'] = np.ones_like(Ebins_ctr)
+    else:
+        print('ER_spec_model: ',mcmc_data['ER_spec_model'],' not implemented yet.')
     ################################################################################
     #Okay we got everything now
     ################################################################################
@@ -148,9 +168,9 @@ def get_mcmc_data(model=None,update=None): #Data Settings
 #############################
 ######### Modeling ##########
 #############################
-def Y(model):
+def Y_func(model):
     tempY = Yield.Yield('Lind',[0.15])
-    newmodel = mcmc_data['Y_model'] #give flexibility by "syncincg" variations of string to expected version
+    newmodel = get_mcmc_data(model)['Y_model'] #give flexibility by "syncincg" variations of string to expected version
     return Yield.Yield(newmodel,np.zeros(tempY.model_npar[newmodel]))
 
 #Version of calc_log_likelihood that is slow because it calls everything each time
@@ -164,7 +184,7 @@ def calc_log_likelihood_slow(model,theta=[0.2,1,1,1,1],
     spec_bounds=mcmc_data['spec_bounds']
     likelihood=mcmc_data['likelihood']
     
-    if (mcmc_data['model'] == 'Sor') & (len(theta)==5): #Make theta the correct length if left at default
+    if (mcmc_data['Y_model'] == 'Sor') & (len(theta)==5): #Make theta the correct length if left at default
         theta.append(1)
             
             
@@ -173,7 +193,7 @@ def calc_log_likelihood_slow(model,theta=[0.2,1,1,1,1],
     N_er=mcmc_data['N_er']
     Evec_nr=mcmc_data['Evec_nr']
     cap=mcmc_data['cap']
-    Y=Y(model)
+    Y=Y_func(model)
     
     if f_ngzero:
         theta[-1] = 0
@@ -203,7 +223,7 @@ def calc_log_likelihood_slow(model,theta=[0.2,1,1,1,1],
         #Don't apply any efficiency effects to simulated spectrum
         #NR
         if mcmc_data['NR_spec_model']=='sim':
-            N_nr=spec.buildAvgSimSpectrum_ee(Ebins=mcmc_data['Ebins'], 
+            N_nr=Spec.buildAvgSimSpectrum_ee(Ebins=mcmc_data['Ebins'], 
                                              Evec=Evec_nr, Yield=Y, F=F_NR, scale=1,\
                                              doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'],\
                                              doEffs=False)
@@ -237,7 +257,7 @@ def calc_log_likelihood_slow(model,theta=[0.2,1,1,1,1],
             print('doDetRes:',mcmc_data['doDetRes'])
             print('fpeak:',mcmc_data['fpeak'],'\n')
         #(n,gamma)
-        N_ng=spec.buildAvgSimSpectrum_ee_composite(Ebins=mcmc_data['Ebins'], Evec=cap['E'], dEvec=cap['dE'],\
+        N_ng=Spec.buildAvgSimSpectrum_ee_composite(Ebins=mcmc_data['Ebins'], Evec=cap['E'], dEvec=cap['dE'],\
                                                    Yield=Y, F=F_NR, scale=1, doDetRes=mcmc_data['doDetRes'],\
                                                    fpeak=mcmc_data['fpeak'], doEffs=False,verbose=verbose)
         scale_ng=theta[mcmc_data['labels'].index('$scale_{ng}$')]/cap['tlive']
@@ -283,15 +303,16 @@ def calc_log_likelihood_slow(model,theta=[0.2,1,1,1,1],
             
             
 #"Normal speed" version of calc_log_likelihood that requires mcmc_data to exist
-def calc_log_likelihood(model,theta=[0.2,1,1,1,1],
+def calc_log_likelihood(mcmc_data,theta=[0.2,1,1,1,1],
                         #theta_bounds=tuple(mcmc_data['bounds']), spec_bounds=mcmc_data['spec_bounds'], likelihood=mcmc_data['likelihood'],
                         verbose=False,f_ngzero=False): 
     #Create shorthands for inside of function
+    model = mcmc_data['Y_model']
     theta_bounds=tuple(mcmc_data['bounds'])
     spec_bounds=mcmc_data['spec_bounds']
     likelihood=mcmc_data['likelihood']
     
-    if (mcmc_data['model'] == 'Sor') & (len(theta)==5): #Make theta the correct length if left at default
+    if (mcmc_data['Y_model'] == 'Sor') & (len(theta)==5): #Make theta the correct length if left at default
         theta.append(1)
             
             
@@ -300,7 +321,7 @@ def calc_log_likelihood(model,theta=[0.2,1,1,1,1],
     N_er=mcmc_data['N_er']
     Evec_nr=mcmc_data['Evec_nr']
     cap=mcmc_data['cap']
-    Y=Y(model)
+    Y=Y_func(model)
     
     if f_ngzero:
         theta[-1] = 0
@@ -320,9 +341,9 @@ def calc_log_likelihood(model,theta=[0.2,1,1,1,1],
     #Grab correct ER scaling factor from theta
     if mcmc_data['ER_spec_model']=='sim':
         if '$scale_{G4}$' in mcmc_data['labels']:
-            scale_er=theta[mcmc_data['labels'].index('$scale_{G4}$')]/g4['ER']['tlive']
+            scale_er=theta[mcmc_data['labels'].index('$scale_{G4}$')]/mcmc_data['g4']['ER']['tlive']
         else:
-            scale_er=theta[mcmc_data['labels'].index('$scale_{ER}$')]/g4['ER']['tlive']
+            scale_er=theta[mcmc_data['labels'].index('$scale_{ER}$')]/mcmc_data['g4']['ER']['tlive']
         
     ##########
     #Build the spectra    
@@ -330,7 +351,7 @@ def calc_log_likelihood(model,theta=[0.2,1,1,1,1],
         #Don't apply any efficiency effects to simulated spectrum
         #NR
         if mcmc_data['NR_spec_model']=='sim':
-            N_nr=spec.buildAvgSimSpectrum_ee(Ebins=mcmc_data['Ebins'], 
+            N_nr=Spec.buildAvgSimSpectrum_ee(Ebins=mcmc_data['Ebins'], 
                                              Evec=Evec_nr, Yield=Y, F=F_NR, scale=1,\
                                              doDetRes=mcmc_data['doDetRes'], fpeak=mcmc_data['fpeak'],\
                                              doEffs=False)
@@ -345,9 +366,9 @@ def calc_log_likelihood(model,theta=[0.2,1,1,1,1],
                 print("fpeak:",mcmc_data['fpeak'],'\n')
 
             if '$scale_{G4}$' in mcmc_data['labels']:
-                scale_nr=theta[mcmc_data['labels'].index('$scale_{G4}$')]/g4['NR']['tlive']
+                scale_nr=theta[mcmc_data['labels'].index('$scale_{G4}$')]/mcmc_data['g4']['NR']['tlive']
             else:
-                scale_nr=theta[mcmc_data['labels'].index('$scale_{NR}$')]/g4['NR']['tlive']
+                scale_nr=theta[mcmc_data['labels'].index('$scale_{NR}$')]/mcmc_data['g4']['NR']['tlive']
         elif mcmc_data['NR_spec_model']=='exp':
             N_nr=np.exp(-Ebins_ctr/theta[mcmc_data['labels'].index(r'$E0_{NR}$')])
             scale_nr=theta[mcmc_data['labels'].index(r'$R0_{NR}$')]
@@ -364,7 +385,7 @@ def calc_log_likelihood(model,theta=[0.2,1,1,1,1],
             print('doDetRes:',mcmc_data['doDetRes'])
             print('fpeak:',mcmc_data['fpeak'],'\n')
         #(n,gamma)
-        N_ng=spec.buildAvgSimSpectrum_ee_composite(Ebins=mcmc_data['Ebins'], Evec=cap['E'], dEvec=cap['dE'],\
+        N_ng=Spec.buildAvgSimSpectrum_ee_composite(Ebins=mcmc_data['Ebins'], Evec=cap['E'], dEvec=cap['dE'],\
                                                    Yield=Y, F=F_NR, scale=1, doDetRes=mcmc_data['doDetRes'],\
                                                    fpeak=mcmc_data['fpeak'], doEffs=False,verbose=verbose)
         scale_ng=theta[mcmc_data['labels'].index('$scale_{ng}$')]/cap['tlive']
@@ -390,8 +411,8 @@ def calc_log_likelihood(model,theta=[0.2,1,1,1,1],
     elif likelihood=='SNorm':
         #Precalculate split normal likelihood params if we're going to need it
         SNpars=L.getSNparsArray(N_meas[slice(*spec_bounds)],
-                                dN_meas[0][slice(*spec_bounds)],
-                                dN_meas[1][slice(*spec_bounds)])
+                                mcmc_data['dN_meas'][0][slice(*spec_bounds)],
+                                mcmc_data['dN_meas'][1][slice(*spec_bounds)])
         SNpars=SNpars.T
         ll = L.ll_SNorm(N_pred[slice(*spec_bounds)],*SNpars) #4 parameters
         if verbose:
@@ -409,24 +430,24 @@ def calc_log_likelihood(model,theta=[0.2,1,1,1,1],
             
 def optll(model,initial,bounds,mcmc_args=None):
     mcmc_data = get_mcmc_data(model,mcmc_args)
-    nll = lambda params: -calc_log_likelihood(model,theta=params)
+    nll = lambda params: -calc_log_likelihood(mcmc_data,theta=params)
     soln = minimize(nll,initial,method='SLSQP',bounds=bounds)
     params = {} #Initialize empty dictionary
-    if mcmc_data['model'] == 'Sor':
+    if mcmc_data['Y_model'] == 'Sor':
         for i,x in enumerate('k','q','F_NR','f_ER','f_NR','f_ng'):
             params.update({x:params[i]})
-    elif mcmc_data['model'] == 'Lind':
+    elif mcmc_data['Y_model'] == 'Lind':
         for i,x in enumerate('k','F_NR','f_ER','f_NR','f_ng'):
             params.update({x:params[i]})
-    elif mcmc_data['model'] == 'Chav':
+    elif mcmc_data['Y_model'] == 'Chav':
         Warn.warn("Individual variables for model 'Chav' not yet implemented. Retrieve from list (`optll()[0][i]`).")
-    elif mcmc_data['model'] == 'AC':
+    elif mcmc_data['Y_model'] == 'AC':
         Warn.warn("Individual variables for model 'AC' not yet implemented. Retrieve from list (`optll()[0][i]`).")
     return soln,params
 
 def print_stats(model,params,comment=None,mcmc_args=None):
     mcmc_data=get_mcmc_data(model,mcmc_args)
-    model = mcmc_data['model']
+    model = mcmc_data['Y_model']
     print("MODEL:",model,"\n")
 
     print("STATISTICS")

@@ -14,12 +14,12 @@ def load_measured(keVmax=2,verbose=True):
     
     #improved dN cut for bursts
     with open(f'data/r68_n125_PuBe_cok_cdN_PTOFkeV_{keVmax}keV_scan_fmt.txt') as fpube:
-        dE = np.asarray([x.split() for x in fpube.readlines()],dtype=np.float)
+        dE = np.asarray([x.split() for x in fpube.readlines()],dtype=float)
         
     #with open('data/r68_n125_bkg_cgood_final_PTOFkeV_2keV_scan_fmt.txt') as fbknd:
     #No burst cut
     with open(f'data/r68_n125_bkg_cok_PTOFkeV_{keVmax}keV_scan_fmt.txt') as fbknd:
-        dbE = np.asarray([x.split() for x in fbknd.readlines()],dtype=np.float)
+        dbE = np.asarray([x.split() for x in fbknd.readlines()],dtype=float)
 
     #Measured event energies in [eV] for PuBe (dE) and background (dbE)
     E_PuBe = dE[:,1]*1e3
