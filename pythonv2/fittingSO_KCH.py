@@ -184,7 +184,7 @@ def calc_log_likelihood_slow(model,theta=[0.2,1,1,1,1],
     spec_bounds=mcmc_data['spec_bounds']
     likelihood=mcmc_data['likelihood']
     
-    if (mcmc_data['Y_model'] == 'Sor') & (len(theta)==5): #Make theta the correct length if left at default
+    if (mcmc_data['Y_model'] in ['Sor','Chav','AC']) & (len(theta)==5): #Make theta the correct length if left at default
         theta.append(1)
             
             
@@ -307,6 +307,8 @@ def calc_log_likelihood(mcmc_data,theta=[0.2,1,1,1,1],
                         #theta_bounds=tuple(mcmc_data['bounds']), spec_bounds=mcmc_data['spec_bounds'], likelihood=mcmc_data['likelihood'],
                         verbose=False,f_ngzero=False): 
     #Create shorthands for inside of function
+    if verbose:
+        print("mcmc_data:",type(mcmc_data))
     model = mcmc_data['Y_model']
     theta_bounds=tuple(mcmc_data['bounds'])
     spec_bounds=mcmc_data['spec_bounds']
@@ -330,6 +332,8 @@ def calc_log_likelihood(mcmc_data,theta=[0.2,1,1,1,1],
     #Parse fit params
     nYpar=Y.npars
 
+    if verbose:
+        print("theta:",type(theta))
     Y.set_pars(theta[:nYpar])
     F_NR=theta[nYpar] #theta[2] 
     if verbose:
@@ -434,17 +438,17 @@ def optll(model,initial,bounds,mcmc_args=None):
     soln = minimize(nll,initial,method='SLSQP',bounds=bounds)
     params = {} #Initialize empty dictionary
     if mcmc_data['Y_model'] == 'Sor':
-        for x in enumerate({'k','q','F_NR','f_ER','f_NR','f_ng'}):
-            print(x)
-            params[i]
-            params.update({x:params[i]})
+        for i,x in enumerate(['k','q','F_NR','f_ER','f_NR','f_ng']):
+            params.update({x:soln.x[i]})
     elif mcmc_data['Y_model'] == 'Lind':
         for i,x in enumerate(['k','F_NR','f_ER','f_NR','f_ng']):
-            params.update({x:params[i]})
+            params.update({x:soln.x[i]})
     elif mcmc_data['Y_model'] == 'Chav':
-        Warn.warn("Individual variables for model 'Chav' not yet implemented. Retrieve from list (`optll()[0][i]`).")
+        for i,x in enumerate(['k','ainv','F_NR','f_ER','f_NR','f_ng']):
+            params.update({x:soln.x[i]})
     elif mcmc_data['Y_model'] == 'AC':
-        Warn.warn("Individual variables for model 'AC' not yet implemented. Retrieve from list (`optll()[0][i]`).")
+        for i,x in enumerate(['k','xi','F_NR','f_ER','f_NR','f_ng']):
+            params.update({x:soln.x[i]})
     return soln,params
 
 def print_stats(model,params,comment=None,mcmc_args=None):
@@ -454,7 +458,7 @@ def print_stats(model,params,comment=None,mcmc_args=None):
 
     print("STATISTICS")
     print("------------")
-    print("Log likelihood:",calc_log_likelihood(model,theta=params))
+    print("Log likelihood:",calc_log_likelihood(mcmc_data,theta=params))
 
     if mcmc_data['likelihood'] == 'SNorm':
         chi = L.chisq(N_meas[slice(*mcmc_data['spec_bounds'])],N_pred[slice(*mcmc_data['spec_bounds'])],0.5*(dN_meas[0]+dN_meas[1])[slice(*mcmc_data['spec_bounds'])])
@@ -483,9 +487,22 @@ def print_stats(model,params,comment=None,mcmc_args=None):
         print("f_NR = {0:.3f}".format(f_NR))
         print("f_ng = {0:.3f}\n".format(f_ng))
     elif model == 'Chav':
-        Warn.warn("Parameter printing for model 'Chav' not yet implemented.")
+        k,ainv,F_NR,f_ER,f_NR,f_ng = params
+        print("k = {0:.3f}".format(k))
+        print("a^{-1} = {0:.3f}".format(ainv))
+        print("F_NR = {0:.3f}".format(F_NR))
+        print("f_ER = {0:.3f}".format(f_ER))
+        print("f_NR = {0:.3f}".format(f_NR))
+        print("f_ng = {0:.3f}\n".format(f_ng))
     elif model == 'AC':
+        k,xi,F_NR,f_ER,f_NR,f_ng = params
         Warn.warn("Parameter printing for model 'AC' not yet implemented.")
+        print("k = {0:.3f}".format(k))
+        print("\xi = {0:.3f}".format(xi))
+        print("F_NR = {0:.3f}".format(F_NR))
+        print("f_ER = {0:.3f}".format(f_ER))
+        print("f_NR = {0:.3f}".format(f_NR))
+        print("f_ng = {0:.3f}\n".format(f_ng))
     
     if comment != None:
         if not isinstance(comment, str):
@@ -495,5 +512,5 @@ def print_stats(model,params,comment=None,mcmc_args=None):
             
 def get_optimized_stats(model,initial,bounds=None,mcmc_args=None,comment=None):
     mcmc_data = get_mcmc_data(model,mcmc_args)
-    params = optll(model,initial,bounds,mcmc_args)[0]
+    params = optll(model,initial,bounds,mcmc_args)[0].x
     print_stats(model,params,comment,mcmc_args)
