@@ -461,7 +461,7 @@ def print_stats(model,params,comment=None,mcmc_args=None):
     print("Log likelihood:",calc_log_likelihood(mcmc_data,theta=params))
 
     if mcmc_data['likelihood'] == 'SNorm':
-        chi = L.chisq(N_meas[slice(*mcmc_data['spec_bounds'])],N_pred[slice(*mcmc_data['spec_bounds'])],0.5*(dN_meas[0]+dN_meas[1])[slice(*mcmc_data['spec_bounds'])])
+        chi = L.chisq(mcmc_data['N_meas'][slice(*mcmc_data['spec_bounds'])],N_pred[slice(*mcmc_data['spec_bounds'])],0.5*(mcmc_data['dN_meas'][0]+mcmc_data['dN_meas'][1])[slice(*mcmc_data['spec_bounds'])])
     else:
         raise ValueError('Available likelihood models: SNorm.',mcmc_data['likelihood'])
     dof=np.diff(mcmc_data['spec_bounds'])[0]-mcmc_data['ndim']
@@ -498,7 +498,7 @@ def print_stats(model,params,comment=None,mcmc_args=None):
         k,xi,F_NR,f_ER,f_NR,f_ng = params
         Warn.warn("Parameter printing for model 'AC' not yet implemented.")
         print("k = {0:.3f}".format(k))
-        print("\xi = {0:.3f}".format(xi))
+        print("$\\xi$ = {0:.3f}".format(xi))
         print("F_NR = {0:.3f}".format(F_NR))
         print("f_ER = {0:.3f}".format(f_ER))
         print("f_NR = {0:.3f}".format(f_NR))
