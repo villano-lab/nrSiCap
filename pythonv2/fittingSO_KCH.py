@@ -432,9 +432,9 @@ def calc_log_likelihood(mcmc_data,theta=[0.2,1,1,1,1],
     return ll #When optimizing, I only want to optimize the log likelihood, not of prior*likelihood.
     #So I've slightly altered this function. Also shrunk down to SNorm for ease of troubleshooting
             
-def optll(model,initial,bounds,mcmc_args=None):
+def optll(model,initial,bounds,mcmc_args=None,f_ngzero=False):
     mcmc_data = get_mcmc_data(model,mcmc_args)
-    nll = lambda params: -calc_log_likelihood(mcmc_data,theta=params)
+    nll = lambda params: -calc_log_likelihood(mcmc_data,theta=params,f_ngzero=f_ngzero)
     soln = minimize(nll,initial,method='SLSQP',bounds=bounds)
     params = {} #Initialize empty dictionary
     if mcmc_data['Y_model'] == 'Sor':
@@ -489,16 +489,15 @@ def print_stats(model,params,comment=None,mcmc_args=None):
     elif model == 'Chav':
         k,ainv,F_NR,f_ER,f_NR,f_ng = params
         print("k = {0:.3f}".format(k))
-        print('$a^{{-1}}$ = {0:.3f}'.format(ainv))
+        print("$a^{-1}$ = "+"{0:.3f}".format(ainv))
         print("F_NR = {0:.3f}".format(F_NR))
         print("f_ER = {0:.3f}".format(f_ER))
         print("f_NR = {0:.3f}".format(f_NR))
         print("f_ng = {0:.3f}\n".format(f_ng))
     elif model == 'AC':
         k,xi,F_NR,f_ER,f_NR,f_ng = params
-        Warn.warn("Parameter printing for model 'AC' not yet implemented.")
         print("k = {0:.3f}".format(k))
-        print("$\\xi$ = {0:.3f}".format(xi))
+        print(r"$\xi$ = "+"{0:.3f}".format(xi))
         print("F_NR = {0:.3f}".format(F_NR))
         print("f_ER = {0:.3f}".format(f_ER))
         print("f_NR = {0:.3f}".format(f_NR))
@@ -510,7 +509,7 @@ def print_stats(model,params,comment=None,mcmc_args=None):
         else:
             print("COMMENT:\n",comment)
             
-def get_optimized_stats(model,initial,bounds=None,mcmc_args=None,comment=None):
+def get_optimized_stats(model,initial,bounds=None,mcmc_args=None,comment=None,f_ngzero=False):
     mcmc_data = get_mcmc_data(model,mcmc_args)
-    params = optll(model,initial,bounds,mcmc_args)[0].x
+    params = optll(model,initial,bounds,mcmc_args,f_ngzero)[0].x
     print_stats(model,params,comment,mcmc_args)
