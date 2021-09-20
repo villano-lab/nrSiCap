@@ -489,7 +489,7 @@ def print_stats(model,params,comment=None,mcmc_args=None):
     elif model == 'Chav':
         k,ainv,F_NR,f_ER,f_NR,f_ng = params
         print("k = {0:.3f}".format(k))
-        print("a^{-1} = {0:.3f}".format(ainv))
+        print('$a^{{-1}}$ = {0:.3f}'.format(ainv))
         print("F_NR = {0:.3f}".format(F_NR))
         print("f_ER = {0:.3f}".format(f_ER))
         print("f_NR = {0:.3f}".format(f_NR))
