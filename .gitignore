@@ -12,9 +12,12 @@ analysis_notebooks/figures/
 analysis_notebooks/data/mcmc*
 
 #Large files
-analysis_notebooks/data/v3_400k.pkl
-analysis_notebooks/data/byseries/07180924_1710/07180924_1710_traces.root
-analysis_notebooks/data/normsi_fast_200k.pkl
+data/mcmc_Lind_128walk_50kstep_SNorm_v1.pkl
+data/mcmc_Lind_128walk_50kstep_SNorm_v2.pkl
+data/mcmc_Sor_128walk_50kstep_SNorm_v3.pkl
+data/mcmc_Sor_128walk_50kstep_SNorm_v4.pkl
+data/normsi_fast_200k.pkl
+data/v3_400k.pkl
 
 #Reference files
 analysisUtils.c

@@ -4,7 +4,7 @@ import numpy as np
 ############################################################################
 #Load measured R68 PuBe and Bkg data
 #keVmax={2,10}
-def load_measured(keVmax=2,verbose=True):
+def load_measured(keVmax=2,verbose=False):
     if verbose:
         print('Loading Measured Data...')
     #Only low energy rate cut
