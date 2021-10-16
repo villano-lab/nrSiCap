@@ -41,7 +41,7 @@ def load_measured(keVmax=2,verbose=False):
 ############################################################################
 #load simulated Geant4 data
 #load_frac: fraction of simulated events to actually load
-def load_G4(load_frac=1.0,verbose=True):
+def load_G4(load_frac=1.0,verbose=False):
     if verbose:
         print('Loading Geant4 Data...')
     #===============to suppress h5py warning see:
@@ -142,7 +142,7 @@ def load_G4(load_frac=1.0,verbose=True):
 #rcapture: expected capture rate, used to set livetime
 # See calculations in: https://zzz.physics.umn.edu/cdms/doku.php?id=cdms:k100:run_summary:run_68:run_68_n125:full_signal_fit#efficiencies_and_live_time
 #load_frac: fraction of simulated events to load. Adjusts livetime appropriately
-def load_simcap(file='data/v3_400k.pkl', rcapture=0.218, load_frac=1.0,verbose=True):
+def load_simcap(file='data/v3_400k.pkl', rcapture=0.218, load_frac=1.0,verbose=False):
     if verbose:
         print('Loading (n,gamma) Data...')
     
@@ -173,8 +173,9 @@ def load_simcap(file='data/v3_400k.pkl', rcapture=0.218, load_frac=1.0,verbose=T
     
     return {"E":E_ng, "dE":dE_ng, "N":N, "tlive":tlive_ng}
 
-def load_simcap_old(lifetimes='fast', Ncascades='200k'):
-    print('Loading (n,gamma) Data...')
+def load_simcap_old(lifetimes='fast', Ncascades='200k',verbose=False):
+    if verbose:
+        print('Loading (n,gamma) Data...')
     #'fast' or 'slow'
     #'2M' or '200k'
     
