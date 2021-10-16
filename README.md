@@ -8,6 +8,14 @@ Much of the other importatnt analysis and code is (unfortunately) scattered acro
 
 This repo mostly contains code to compare simulations with measured data and perform fitting/parameter estimation.
 
+## Necessary Binaries
+In order to run some of the code in this repository, you will need to retrieve some binary data files that were too large to be stored in the repository. 
+These can be found on the [associated OSF project](https://osf.io/g4enq/). Download the following files and place them directly in the top-level `data` directory:
+* Any files matching `mcmc_*_128walk_50kstep_SNorm_v?.pkl`
+* `normsi_fast_200k.pkl`
+* `v3_400k.pkl`
+And within the directory `data/byseries/07180924_1710`, add the file `07180924_1710_traces.root` from the OSF directory `07180924_1710`.
+
 ## Important Files
 The `python` directory contains some sets of useful functions, many are self explanatory. 
 * `R68_efficiencies.py` provides the finalized cut and trigger efficiencies for the measured data. The file contains links to the relevant analysis desciptions from which each value was obtained. 
@@ -15,7 +23,7 @@ The `python` directory contains some sets of useful functions, many are self exp
 * `R68_yield.py` has paramaterized yield models. It defines a genralized `Yield` class which is an object that gets passed to different routines in the analysis.
 * `R68_spec_tools.py` contains a number of methods for generating, manipulating, and plotting energy spectra. This is where simulated hits from Geant4 or (n,gamma) sims have the yield applied and get combined into measured events. This section has undergone the most development and there are still vestigial functions with similar names to newer, more useful functions. This should be cleaned up eventually, but the comments make clear which are defunct.
 
-There are a ton of files in the `analysis_notebooks` directory, only some of which are still useful. Many were generated to explore one or another step in the full analysis. A few highlights are
+There are a ton of files in the `analysis_notebooks` directory, only some of which are still useful. Many were generated to explore one or another step in the full analysis. **This version, v0.2, will be the last or one of the last versions maintaining all of these files. Starting with v1.0, many of the notebooks in this directory will be removed, and the remaining notebooks will be moved to `0-Analysis`.** A few highlights are
 
 * `R68_MCMC_MPI.py`, `R68_MCMC_process.ipynb`, and `R68_MCMC_plots_v2.ipynb` are the main trio used to run and evaluate MCMC fits. They are descibed more in the next section.
 * `Yield_playground.ipynb` includes all the commands to load measured and simulated data, apply a yield function, and plot the resulting spectra. This is sort of a *hands-on* version of the main fitting steps so one can easily turn the various knobs to see what happens.
@@ -36,3 +44,8 @@ The reason this is organized to be run on a cluster is that it can take a long t
 
 The notebook `analysis_notebooks/R68_MCMC_process.ipynb` is designed to open an MCMC results file and do some basic analysis of the data including calculations of sampler autocovariance, sample thinning, parameter distributions, and best-fit spectra and yield distributions. These calculations are stored in the same file alongside the MCMC results. The notebook `analysis_notebooks/R68_MCMC_plots_v2.ipynb` can then be run to make a set of standard plots of these results.
 
+### Numbered Directories
+There are three numbered directories - `0-Analysis`, `1-PRL_Figures`, and `2-Additional_Figures`. 
+`0-Analysis` contains notebooks discussing steps of the analysis that may be of interest but were not critical enough to include in the paper ([arXiv](https://arxiv.org/abs/2110.02751)).
+`1-PRL_Figures` contains code for generating any figures in the paper.
+`2-Additional_Figures` contains code for generating additional figures. Some of these notebooks are placeholders, and others may overlap with code in the first two. These do not contain any notable annotation, interpretation, or description.
