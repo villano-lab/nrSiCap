@@ -1,4 +1,6 @@
 name: r68 
+channels:
+  - default
 dependencies:
   - python>=3.6
   - anaconda
