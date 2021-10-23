@@ -24,8 +24,7 @@ dependencies:
   - pip
   - pip:
     - tqdm
-    - uproot==4.0.11
-    - awkward==1.3.0
+    - uproot
     - svgpathtools
     - bootstrapped 
     - papermill
