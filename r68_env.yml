@@ -17,7 +17,7 @@ dependencies:
 #  - lmfit
 #  - ipykernel
 #  - nb_conda_kernels
-#  - anaconda::pytest
+  - anaconda::pytest
   - pip
   - pip:
     - emcee 
