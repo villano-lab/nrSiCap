@@ -7,24 +7,21 @@ dependencies:
   - numpy
   - scipy
   - emcee
-  - pandas
-  - astropy::gammapy
-  - astropy::corner
-#Maybe this specific version of matplotlib has a conflict with mpld3?
-#it was causing Travis jobs to fail maybe? 
-#  - matplotlib==3.4.2
-  - matplotlib
-  - mpld3
-  - tabulate
-  - h5py
-  - lmfit
-  - ipykernel
-  - nb_conda_kernels
-  - anaconda::pytest
-  - pip
-  - pip:
-    - tqdm
-    - uproot
-    - svgpathtools
-    - bootstrapped 
-    - papermill
+#  - pandas
+#  - astropy::gammapy
+#  - astropy::corner
+#  - matplotlib
+#  - mpld3
+#  - tabulate
+#  - h5py
+#  - lmfit
+#  - ipykernel
+#  - nb_conda_kernels
+#  - anaconda::pytest
+#  - pip
+#  - pip:
+#    - tqdm
+#    - uproot
+#    - svgpathtools
+#    - bootstrapped 
+#    - papermill
