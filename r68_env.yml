@@ -21,8 +21,8 @@ dependencies:
   - pip
   - pip:
     - emcee 
+    - papermill
 #    - tqdm
 #    - uproot
 #    - svgpathtools
 #    - bootstrapped 
-#    - papermill
