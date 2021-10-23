@@ -6,7 +6,7 @@ dependencies:
   - anaconda
   - numpy
   - scipy
-  - emcee
+#  - emcee
 #  - pandas
 #  - astropy::gammapy
 #  - astropy::corner
@@ -18,8 +18,9 @@ dependencies:
 #  - ipykernel
 #  - nb_conda_kernels
 #  - anaconda::pytest
-#  - pip
-#  - pip:
+  - pip
+  - pip:
+    - emcee 
 #    - tqdm
 #    - uproot
 #    - svgpathtools
