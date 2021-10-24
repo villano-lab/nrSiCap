@@ -1,0 +1,28 @@
+name: nrSiCap 
+channels:
+  - default
+dependencies:
+  - python>=3.6
+  - anaconda
+  - numpy
+  - scipy
+#  - emcee
+#  - pandas
+#  - astropy::gammapy
+#  - astropy::corner
+#  - matplotlib
+#  - mpld3
+#  - tabulate
+#  - h5py
+#  - lmfit
+#  - ipykernel
+#  - nb_conda_kernels
+  - anaconda::pytest
+  - pip
+  - pip:
+    - emcee 
+    - papermill
+#    - tqdm
+#    - uproot
+#    - svgpathtools
+#    - bootstrapped 
