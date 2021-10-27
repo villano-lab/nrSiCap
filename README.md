@@ -1,5 +1,5 @@
-# R68_paper2019
-Analysis code and documentation for the UMN R68 silicon paper
+# `nrSiCap` 
+Analysis code and documentation for the [first measurement of isolated nuclear recoils](https://arxiv.org/abs/2110.02751).  
 
 ## Overview
 This repo contains some of the analysis code and a little of the documentation for the analysis of UMN R68, which used a SuperCDMS Si HV prototype to search for low energy (n,gamma) NRs from a PuBe neutron source.
