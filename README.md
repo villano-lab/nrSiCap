@@ -49,3 +49,8 @@ There are three numbered directories - `0-Analysis`, `1-PRL_Figures`, and `2-Add
 `0-Analysis` contains notebooks discussing steps of the analysis that may be of interest but were not critical enough to include in the paper ([arXiv](https://arxiv.org/abs/2110.02751)).
 `1-PRL_Figures` contains code for generating any figures in the paper.
 `2-Additional_Figures` contains code for generating additional figures. Some of these notebooks are placeholders, and others may overlap with code in the first two. These do not contain any notable annotation, interpretation, or description.
+
+# Contributors  
+Anthony Villano
+Kitty Harris 
+Ana Gevorgian
