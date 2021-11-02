@@ -51,6 +51,7 @@ There are three numbered directories - `0-Analysis`, `1-PRL_Figures`, and `2-Add
 `2-Additional_Figures` contains code for generating additional figures. Some of these notebooks are placeholders, and others may overlap with code in the first two. These do not contain any notable annotation, interpretation, or description.
 
 # Contributors  
-Anthony Villano
+Nick Mast
+Anthony Villano  
 Kitty Harris 
 Ana Gevorgian
