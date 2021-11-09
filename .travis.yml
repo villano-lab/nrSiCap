@@ -26,7 +26,7 @@ install:
   - conda env create -n test-environment python=$TRAVIS_PYTHON_VERSION -f nrSiCap.yml 
   - source activate test-environment
 
-before_script: cd analysis_notebooks
+before_script: cd 0-Analysis
 
 script:
 - travis_wait 50 py.test
