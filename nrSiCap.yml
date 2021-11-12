@@ -6,6 +6,7 @@ dependencies:
   - anaconda
   - numpy
   - scipy
+  - uproot
 #  - emcee
 #  - pandas
 #  - astropy::gammapy
