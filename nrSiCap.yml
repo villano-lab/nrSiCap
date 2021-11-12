@@ -12,7 +12,7 @@ dependencies:
 #  - astropy::corner
 #  - matplotlib
 #  - mpld3
-#  - tabulate
+  - tabulate
 #  - h5py
 #  - lmfit
 #  - ipykernel
