@@ -6,7 +6,6 @@ dependencies:
   - anaconda
   - numpy
   - scipy
-  - uproot
 #  - emcee
 #  - pandas
 #  - astropy::gammapy
@@ -23,6 +22,7 @@ dependencies:
   - pip:
     - emcee 
     - papermill
+    - uproot
 #    - tqdm
 #    - uproot
 #    - svgpathtools
