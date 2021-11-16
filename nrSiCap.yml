@@ -18,11 +18,12 @@ dependencies:
 #  - ipykernel
 #  - nb_conda_kernels
   - anaconda::pytest
-  - pip
+  - pip>=21.2.2
   - pip:
     - emcee 
     - papermill
     - uproot
+    - awkward
 #    - tqdm
 #    - uproot
 #    - svgpathtools
