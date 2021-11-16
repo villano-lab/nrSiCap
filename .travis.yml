@@ -26,6 +26,11 @@ install:
   - conda env create -n test-environment python=$TRAVIS_PYTHON_VERSION -f nrSiCap.yml 
   - source activate test-environment
 
+  # Get OSF data
+  - cd data
+  - wget https://osf.io/9xftw/download
+  - cd ../
+
 before_script: cd 0-Analysis
 
 script:
