@@ -3,7 +3,7 @@ channels:
   - default
 dependencies:
   - python==3.6.13
-  - anaconda::anaconda
+#  - anaconda::anaconda
 #  - pandas
 #  - astropy::gammapy
 #  - astropy::corner
