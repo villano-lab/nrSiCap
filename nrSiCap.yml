@@ -3,16 +3,12 @@ channels:
   - default
 dependencies:
   - python>=3.6.13
-  - anaconda
-  - numpy>=1.19.2
-  - scipy>=1.5.2
-#  - emcee
+  - anaconda::anaconda>=1.8.0
 #  - pandas
 #  - astropy::gammapy
 #  - astropy::corner
 #  - matplotlib
 #  - mpld3
-  - tabulate>=0.8.9
 #  - h5py
 #  - lmfit
 #  - ipykernel
@@ -28,3 +24,7 @@ dependencies:
 #    - uproot
 #    - svgpathtools
 #    - bootstrapped 
+    - numpy>=1.19.2
+    - scipy>=1.5.2
+    - tabulate>=0.8.9
+
