@@ -13,6 +13,9 @@ dependencies:
 #  - lmfit
 #  - ipykernel
 #  - nb_conda_kernels
+  - anaconda::_anaconda_depends==2020.07
+  - anaconda::anaconda-client==1.8.0
+  - anaconda::anaconda-project==0.10.1
   - anaconda::pytest==6.1.1
   - pip==21.2.2
   - pip:
