@@ -29,6 +29,7 @@ install:
   # Get OSF data
   - cd data
   - wget https://osf.io/9xftw/download
+  - ls
   - cd ../
 
 before_script: cd 0-Analysis
