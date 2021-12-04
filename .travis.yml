@@ -28,7 +28,7 @@ install:
 
   # Get OSF data
   #- cd data
-  - wget https://osf.io/9xftw/download ./data/
+  - wget https://osf.io/9xftw/download -P ./data/
   - ls data
   #- cd ../
 
