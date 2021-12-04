@@ -28,7 +28,7 @@ install:
 
   # Get OSF data
   #- cd data
-  - wget https://osf.io/9xftw/download -0 ./data/v3_400k.pkl
+  - wget https://osf.io/9xftw/download -O ./data/v3_400k.pkl
   - ls data
   #- cd ../
 
