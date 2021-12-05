@@ -70,7 +70,7 @@ def get_old_Y_data(label='izr'):
         #https://arxiv.org/pdf/1608.00957.pdf
         ##########
         #Ee	Er	dEr_stat	dEr_sys
-        chav_data = pd.read_csv(package_path()+"/../analysis_notebooks/data/Chavarria_16.txt", sep='\t')
+        chav_data = pd.read_csv(package_path()+"/../data/Chavarria_16.txt", sep='\t')
         #convert to numpy arrays, [eV]
         chav_data['Ee']=np.asarray(chav_data['Ee'])*1000
         chav_data['Er']=np.asarray(chav_data['Er'])*1000
@@ -93,7 +93,7 @@ def get_old_Y_data(label='izr'):
         #https://arxiv.org/pdf/1702.00873.pdf
         ##########
         #E_ion	dE_ion_sys	E_NR	dE_NR_stat	dE_NR_sys	Y	dY_stat	dY_sys
-        izr_data = pd.read_csv(package_path()+"/../analysis_notebooks/data/Izraelevitch_17.txt", sep='\t')
+        izr_data = pd.read_csv(package_path()+"/../data/Izraelevitch_17.txt", sep='\t')
         #convert to numpy arrays, [eV]
         izr_data['E_NR']=np.asarray(izr_data['E_NR'])*1000
         izr_data['dE_NR_stat']=np.asarray(izr_data['dE_NR_stat'])*1000
@@ -115,7 +115,7 @@ def get_old_Y_data(label='izr'):
         #10.1103/PhysRevA.45.2104
         ##########
         #Er	dEr	Y	dY
-        dough_data = pd.read_csv(package_path()+"/../analysis_notebooks/data/Dougherty_91.txt", sep='\t')
+        dough_data = pd.read_csv(package_path()+"/../data/Dougherty_91.txt", sep='\t')
         #convert to numpy arrays, [eV]
         dough_data['Er']=np.asarray(dough_data['Er'])*1000
         dough_data['dEr']=np.asarray(dough_data['dEr'])*1000
@@ -132,7 +132,7 @@ def get_old_Y_data(label='izr'):
         #10.1103/PhysRevD.42.3211
         ##########
         #Er	dEr	Y	dY
-        gerb_data = pd.read_csv(package_path()+"/../analysis_notebooks/data/Gerbier_90.txt", sep='\t')
+        gerb_data = pd.read_csv(package_path()+"/../data/Gerbier_90.txt", sep='\t')
         #convert to numpy arrays, [eV]
         gerb_data['Er']=np.asarray(gerb_data['Er'])*1000
         gerb_data['dEr']=np.asarray(gerb_data['dEr'])*1000
@@ -149,7 +149,7 @@ def get_old_Y_data(label='izr'):
         #10.1103/PhysRevA.41.4058
         ##########
         #Er	dEr	Y	dY-	dY+
-        zech_data = pd.read_csv(package_path()+"/../analysis_notebooks/data/Zecher_90.txt", sep='\t')
+        zech_data = pd.read_csv(package_path()+"/../data/Zecher_90.txt", sep='\t')
         #convert to numpy arrays, [eV]
         zech_data['Er']=np.asarray(zech_data['Er'])*1000
         zech_data['dEr']=np.asarray(zech_data['dEr'])*1000
@@ -170,7 +170,7 @@ def get_old_Y_data(label='izr'):
         #N.B. I don't know if these are right. I think there should be a lot more values and
         #  there should be a decently large Er uncertainty that's not in their table I
         #Er	Y	dY-	dY+
-        satt_data = pd.read_csv(package_path()+"/../analysis_notebooks/data/Sattler_65.txt", sep='\t')
+        satt_data = pd.read_csv(package_path()+"/../data/Sattler_65.txt", sep='\t')
         #convert to numpy arrays, [eV]
         satt_data['Er']=np.asarray(satt_data['Er'])*1000
         satt_data['Y']=np.asarray(satt_data['Y'])
@@ -186,7 +186,7 @@ def get_old_Y_data(label='izr'):
         #CDMS-II
         #10.1016/j.nima.2018.07.028
         #Er	dEr	Y	dY
-        cdms2_data = pd.read_csv(package_path()+"/../analysis_notebooks/data/CDMSII.txt", sep='\t')
+        cdms2_data = pd.read_csv(package_path()+"/../data/CDMSII.txt", sep='\t')
         #convert to numpy arrays, [eV]
         cdms2_data['Er']=np.asarray(cdms2_data['Er'])*1000
         cdms2_data['dEr']=np.asarray(cdms2_data['dEr'])*1000
