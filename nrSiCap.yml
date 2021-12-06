@@ -16,7 +16,7 @@ dependencies:
   - anaconda-client==1.8.0
   - anaconda-project==0.10.1
   - anaconda::pytest==6.1.1
-  - _anaconda_depends==2020.07
+#  - _anaconda_depends==2020.07
   - pip==21.2.2
   - pip:
     - emcee==2.2.1
@@ -31,3 +31,4 @@ dependencies:
     - scipy==1.5.2
     - tabulate==0.8.9
     - nbconvert==6.0.7
+    - nb_conda_kernels==2.3.1
