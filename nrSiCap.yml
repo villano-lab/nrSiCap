@@ -32,3 +32,4 @@ dependencies:
     - scipy==1.5.2
     - tabulate==0.8.9
     - nbconvert==6.0.7
+    - matplotlib==3.3.4
