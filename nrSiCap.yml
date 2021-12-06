@@ -33,3 +33,4 @@ dependencies:
     - tabulate==0.8.9
     - nbconvert==6.0.7
     - matplotlib==3.3.4
+    - pandas==1.1.5
