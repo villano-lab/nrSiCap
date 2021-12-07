@@ -224,7 +224,7 @@ def yLind_shelf_co(Er,k,Yshelf,Ec):
     return y
 
 #a spline extrapolation to DAMIC data
-yDamic = np.vectorize(dy.getDAMICy(file=package_path()+'/../analysis_notebooks/data/DAMIC_siyield_allerr.txt'))
+yDamic = np.vectorize(dy.getDAMICy(file=package_path()+'/../data/DAMIC_siyield_allerr.txt'))
 
 #Simple polynomials
 def yPol3(E,p0,p1,p2):

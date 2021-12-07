@@ -3,8 +3,8 @@
 #  - "3.7"
 language: python
 python: 3.7
+os: linux
 dist: xenial
-sudo: true
 install:
   - sudo apt-get update || true
   - sleep 10
@@ -26,7 +26,13 @@ install:
   - conda env create -n test-environment python=$TRAVIS_PYTHON_VERSION -f nrSiCap.yml 
   - source activate test-environment
 
-before_script: cd analysis_notebooks
+  # Get OSF data
+  #- cd data
+  - wget https://osf.io/9xftw/download -O ./data/v3_400k.pkl
+  - ls data
+  #- cd ../
+
+before_script: cd 0-Analysis
 
 script:
 - travis_wait 50 py.test
