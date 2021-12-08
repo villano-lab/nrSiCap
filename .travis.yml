@@ -26,25 +26,13 @@ install:
   - conda env create -n test-environment python=$TRAVIS_PYTHON_VERSION -f nrSiCap.yml 
   - source activate test-environment
 
-  # Get OSF data
-  #- cd data
-  - wget https://osf.io/9xftw/download -O ./data/v3_400k.pkl
-  - wget https://osf.io/dw49y/download -O ./data/mcmc_Lind_128walk_50kstep_SNorm_v1.pkl
-  - wget https://osf.io/2nsmh/download -O ./data/mcmc_Lind_128walk_50kstep_SNorm_v2.pkl
-  - wget https://osf.io/25ckn/download -O ./data/mcmc_Sor_128walk_50kstep_SNorm_v1.pkl
-  - wget https://osf.io/a9fnt/download -O ./data/mcmc_Sor_128walk_50kstep_SNorm_v2.pkl
-  - wget https://osf.io/k3xzg/download -O ./data/mcmc_Sor_128walk_50kstep_SNorm_v3.pkl
-  - wget https://osf.io/j7mkg/download -O ./data/mcmc_Sor_128walk_50kstep_SNorm_v4.pkl
-  - ls data
-  #- cd ../
-
-before_script: cd 0-Analysis
-
 script:
+- ./retrieve_data.sh
+- cd 0-Analysis
 - travis_wait 50 py.test
 - cd ../1-PRL_Figures
 - travis_wait 50 py.test
 - cd ../2-Additional_Figures
 - travis_wait 50 py.test
 - cd ../animated_fits
-- traivs_wait 50 py.test
+- travis_wait 50 py.test
