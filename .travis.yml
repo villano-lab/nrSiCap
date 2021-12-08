@@ -27,7 +27,7 @@ install:
   - source activate test-environment
 
 script:
-- ./retrieve_data.sh
+- sudo ./retrieve_data.sh
 - cd 0-Analysis
 - travis_wait 50 py.test
 - cd ../1-PRL_Figures
