@@ -20,7 +20,7 @@ def _exec_papermill(input_nb, args):
 def test():
     print('Testing Jupyter notebooks...')
     _exec_notebook('Fig01_Diagram.ipynb')
-    _exec_notebook('Fig02_Phonon-Pulse-Template.ipynb')
+    #_exec_notebook('Fig02_Phonon-Pulse-Template.ipynb') #Comment out incomplete notebook.
     _exec_notebook('Fig03_Calibration-Lines.ipynb')
     _exec_notebook('Fig04_Detector-Resolution-Model.ipynb')
     _exec_notebook('Fig05_dN-Distribution-Fit.ipynb')
