@@ -18,5 +18,5 @@ def _exec_papermill(input_nb, args):
 
 
 def test():
-    print('Testing scripts...')
-    python visualFitting.py
+    python --version
+    python ./visualFitting.py
