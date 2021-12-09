@@ -22,12 +22,12 @@ install:
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-
   - conda env create -n test-environment python=$TRAVIS_PYTHON_VERSION -f nrSiCap.yml 
   - source activate test-environment
+  - sudo chmod 777 data
 
 script:
-- sudo ./retrieve_data.sh
+- ./retrieve_data.sh
 - cd 0-Analysis
 - travis_wait 50 py.test
 - cd ../1-PRL_Figures
