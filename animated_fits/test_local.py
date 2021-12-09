@@ -18,4 +18,4 @@ def _exec_papermill(input_nb, args):
 
 
 def test():
-    execfile('./visualFitting.py')
+    exec(open('./visualFitting.py').read())
