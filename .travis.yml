@@ -24,7 +24,9 @@ install:
   - conda info -a
   - conda env create -n test-environment python=$TRAVIS_PYTHON_VERSION -f nrSiCap.yml 
   - source activate test-environment
+  # Give it permission to use the script I want it to use
   - sudo chmod 777 data
+  - sudo chmod 777 retrieve_data.sh
 
 script:
 - ./retrieve_data.sh
