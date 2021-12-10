@@ -18,4 +18,5 @@ def _exec_papermill(input_nb, args):
 
 
 def test():
-    exec(open('./visualFitting.py').read())
+#    exec(open('./visualFitting.py').read())
+    print('Done.')
