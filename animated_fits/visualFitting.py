@@ -142,5 +142,7 @@ def parse_options():
 ################################
 ######Execute on Load###########
 ################################
-print(_mcmc_data) #troubleshooting line
+def printfunc: 
+	print(_mcmc_data) #troubleshooting line
+printfunc()
 parse_options()
