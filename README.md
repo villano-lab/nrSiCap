@@ -50,4 +50,4 @@ Anthony Villano
 Kitty Harris  
 Ana Gevorgian  
 
-*Last updated 9 Nov 2021*
+*Last updated 9 Nov 2021, v2.0.0*
