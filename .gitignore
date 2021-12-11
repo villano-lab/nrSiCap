@@ -12,10 +12,7 @@ analysis_notebooks/figures/
 analysis_notebooks/data/mcmc*
 
 #Large files
-data/mcmc_Lind_128walk_50kstep_SNorm_v1.pkl
-data/mcmc_Lind_128walk_50kstep_SNorm_v2.pkl
-data/mcmc_Sor_128walk_50kstep_SNorm_v3.pkl
-data/mcmc_Sor_128walk_50kstep_SNorm_v4.pkl
+data/mcmc_*_128walk_50kstep_SNorm_v?.pkl
 data/normsi_fast_200k.pkl
 data/v3_400k.pkl
 

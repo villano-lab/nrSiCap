@@ -18,12 +18,18 @@ The `python` directory contains some sets of useful functions, many are self exp
 `R68_MCMC_MPI.py`, `R68_MCMC_process.ipynb`, and `R68_MCMC_plots_v2.ipynb` are the main trio used to run and evaluate MCMC fits. They are descibed more in the next section.
 
 ### Necessary Binaries
-In order to run some of the code in this repository, you will need to retrieve some binary data files that were too large to be stored in the repository directly. 
-These can be found on the [associated OSF project](https://osf.io/g4enq/). Download the following files and place them directly in the top-level `data` directory:
+In order to run some of the code in this repository, 
+you will need to retrieve some binary data files that were too large to be stored in the repository directly.
+For Linux users, 
+running the script `retrieve_data.sh` from the top level of the repository should download all necessary files. 
+If you need or prefer to download everything manually, 
+these files can also be found on the [associated OSF project](https://osf.io/g4enq/). 
+Download the following files and place them directly in the top-level `data` directory:
 * Any files matching `mcmc_*_128walk_50kstep_SNorm_v?.pkl`
 * `normsi_fast_200k.pkl`
 * `v3_400k.pkl`
-And within the directory `data/byseries/07180924_1710`, add the file `07180924_1710_traces.root` from the OSF directory `07180924_1710`.
+And within the directory `data/byseries/07180924_1710`, 
+add the file `07180924_1710_traces.root` from the OSF directory `07180924_1710`.
 
 ### MCMC
 The main workflow is to perform an MCMC fit using the script `0-Analysis/processing/R68_MCMC_MPI.py`. This runs an MCMC fit using [emcee](https://emcee.readthedocs.io/en/stable/) on a computing cluser. This requires a few things to be set up first. The user should be operating in the conda environment defined by r68_env.yml. They will also need to have installed [schwimmbad](https://schwimmbad.readthedocs.io/en/latest/install.html) and a compiled version of MPI like [OpenMPI](https://www.open-mpi.org/).
@@ -50,4 +56,4 @@ Anthony Villano
 Kitty Harris  
 Ana Gevorgian  
 
-*Last updated 9 Nov 2021*
+*Last updated 10 December 2021, v2.0.0*
