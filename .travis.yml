@@ -32,7 +32,7 @@ script:
 - ./retrieve_data.sh
 - cd 0-Analysis
 - travis_wait 50 py.test
-- cd ../1-PRL_Figures
+- cd ../1-PRD_Figures
 - travis_wait 50 py.test
 - cd ../2-Additional_Figures
 - travis_wait 50 py.test

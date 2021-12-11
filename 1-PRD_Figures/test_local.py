@@ -19,7 +19,8 @@ def _exec_papermill(input_nb, args):
 
 def test():
     print('Testing Jupyter notebooks...')
-    _exec_notebook('Diagram.ipynb')
-    _exec_notebook('Fig01_Estimated-Cut-Efficiencies.ipynb')
-    _exec_notebook('Fig02_Range-Best-Fit.ipynb')
-    _exec_notebook('R68_all_eff_plot.ipynb')
+    _exec_notebook('Fig01_Diagram.ipynb')
+    _exec_notebook('Fig02_Calibration-Lines.ipynb')
+    _exec_notebook('Fig03_Estimated-Cut-Efficiencies.ipynb')
+    _exec_notebook('Fig04_Energy-Yield.ipynb')
+    _exec_notebook('Fig05_Range-Best-Fit.ipynb')
