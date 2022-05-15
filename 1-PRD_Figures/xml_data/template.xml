@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<limit>
+<!-- Data references -->
+  <data-source>Example: Jeff Smith (jsmith@univ.edu) or dmtools file 500.xml</data-source>					<!-- Required: Name/email of person submitting the data or link to source file. -->
+  <data-comment>Example: First results from the SuperCDMS IMPACT measurement (2021)</data-comment>  <!-- Required: A brief comment describing/identifying the dataset. -->
+  <data-reference>Example: CDMSlite: A Search for Low-Mass WIMPs using Voltage-Assisted Calorimetric Ionization Detection in the SuperCDMS Experiment.</data-reference> <!-- Optional: Title of the source of the limit, this could be a presntation, an arXiv or published paper or a private communications. -->
+  <url>http://journals.aps.org/prl/abstract/10.1103/PhysRevLett.112.041302</url>		  <!-- Required: Link to the paper/presentation source of the limit. -->
+  <citation>Agnese et al., Physical Review Letters 112, p.041302-1 (2014)</citation>	<!-- Optional: Formatted citation of the paper/presentation limit source. -->
+  <bibtex></bibtex>																		                                <!-- Optional: Formatted bibtex of the paper/presentation limit source, if available. -->
+<!-- Information about the experiment -->
+  <experiment>SuperCDMS</experiment>         			  <!-- Required: Name of the Experiment or Collaboration -->
+  <experiment-status>Current</experiment-status> 		<!-- Required: This can take on values of Current (i.e. running) / Concept (or yet to take data). -->
+  <year type="integer">2021</year>      				    <!-- Required: Year of limit release/publication. -->
+  <public-status>Public</public-status>					    <!-- Required: This can take on values of Public (available for public release) / Private (only to be used for private purposes) / SCDMS Internal (for internal data) / SCDMS Private (for internal and private data). -->
+  <result-type>Measurement</result-type> 				    <!-- Required: This can take on values of Measurement / Projection / Theory / Neutrino Background. -->
+  <measurement-type>Neutron beam</measurement-type>	<!-- Optional: This can take on any value describing the nature of the measurement. -->
+  <projectile-energy>999</projectile-energy>			  <!-- Optional: This can take on any value describing average energy of the incident particle/neutron, in keV. -->
+  <curve-type>Discrete Points</curve-type>  			  <!-- Required: This can take on values of Discrete Points / Continuous Curve / Projection Range / Benchmark. -->
+  <target-material>Si</target-material>					    <!-- Required: Target material use in yield measurement. -->
+  <detector-type>PPC</detector-temperature> 		    <!-- Optional: This is the type of detector, i.e. PPC, CCD, Bolometer, ... . -->  
+  <detector-resolution>999</detector-resolution> 		<!-- Optional: This is the energy resolution of the detector in eV. -->  
+  <detector-threshold>999</detector-threshold> 		  <!-- Optional: This is the energy threshold used in this analysis in eV. -->  
+  <detector-temperature>999</detector-temperature> 	<!-- Optional: This is the operational temp in Kelvin. -->
+  <detector-efield>999</detector-efield>				    <!-- Optional: This is the average electric in the detector in V/cm. -->	
+  <detector-orientation>999</detector-orientation>	<!-- Optional: Orientation of crystal wrt to neutron beam, if applicable. -->	
+  <detector-aspect>999</detector-aspect>				    <!-- Optional: Aspect ratio of the detector (ratio of thickness along vs perpendicular to the E field. -->	
+  <detector-thickness>999</detector-thickness>			<!-- Optional: Thickness of the detector in cm along the smallest dimension. -->	
+  <detector-mass>999</detector-mass>					      <!-- Optional: Mass of the detector used in the measurement in grams. -->	
+  <detector-properties>999</detector-properties>		<!-- Optional: More detector properties such as crystal type, doping levels, or other useful information. -->	
+
+<!-- The data -->
+<!-- 
+You may enter the data in 
+Text (i.e. two columns of recoil energy/yield values separated with space),
+Matlab (i.e. {[recoil energy_1 yield_1; recoil energy_2 yield_2; recoil energy_final yield_final]}) or
+Mathematica (i.e. {{recoil energy_1, yield_1},{recoil energy_2, yield_2},{recoil energy_final, yield_final}}) 
+formats. In all cases, please use the scientific notation 1.234e-40 for the values.
+ -->
+  <data-format>Mathematica</data-format>  <!-- Required: This can take on values of Text / Matlab / Mathematica. -->
+  <data-values>											      <!-- Required -->
+  {
+  {0.957, 0.251},
+  {0.748, 0.3},
+  {0.592, 0.317},
+  {0.45, 0.35},
+  {0.2541, 0.303}
+  }
+  </data-values>
+  
+<!-- 
+The data format is a list of pairs for each point corresponding to the x and y uncertainty. e.g.
+{
+{recoil energy sigma_1, yield sigma_1},
+{recoil energy sigma_2, yield sigma_2},
+{recoil energy sigma_final, yield sigma_final}
+}
+In case of assymteric uncertainties, please enter a pair for the x- and y- value respectively e.g.
+You can mix-match symmetric and assymetric uncertainties for x- and y-
+{
+{{recoil sigma low_1, recoil sigma high_1}, yield sigma_1},
+{{recoil sigma low_2, recoil sigma high_2}, {yield sigma low_2, yield sigma high_2}},
+{recoil sigma low_final, {yield sigma low_final, yield sigma high_final}},
+}
+
+In all cases, please use the scientific notation 1.234e-40 for the values.
+-->
+  <data-uncertainty>
+  {
+	{0.089,	{0.014764,0.014764}},
+	{0.087,	{0.022116,0.021543}},
+	{0.079,	{0.021884,0.022955}},
+	{0.07,	{0.043766,0.035277}},
+	{0.0015,{0.079,0.079}}
+  }
+   </data-uncertainty>  
+
+  <x-rescale>1</x-rescale>        <!-- Optional: A numerical scaling factor to multiply the mass values. Note: this is usually not required and is set to 1 by default. -->
+  <x-units>GeV</x-units>          <!-- Required: This can take on values of GeV / MeV / keV. You may enter the data in the units of your choice, however, the limit plotter will convert and display Nuclear Recoil interactions in GeV/c2, Electron Recoil interactions in MeV/c2, and Dark Photon interactions in keV/c2. -->
+  <y-rescale>1</y-rescale>        <!-- Optional: A numerical scaling factor to multiply the cross-section values. Note: this is usually not required and is set to 1 by default. -->
+  <y-units>cm^2</y-units>         <!-- Required: This can take on values of cm^2 / pb. -->
+<!-- Plotting related Tags -->
+  <data-label>Example: IMPACT Si 100V</data-label>            <!-- Optional: This text will identify the data set in the selection panel. Suggested format: Experiment, exposure (optional run/analysis conditional detail). -->
+  <legend-label>Example: IMPACT, 2021 Si 100V</legend-label>  <!-- Optional: This text will appear in the legend identifying the limit. Suggested format: Experiment, year, exposure (optional run/analysis conditional detail). -->
+  <limit-label>Example: IMPACT</limit-label>                  <!-- Optional: This text will identify the limit in the plot itself. Suggested format: Brief! Experiment. -->
+  <limit-label-location>2</limit-label-location>							<!-- Optional: This value determines where along the curve the limit label is displayed. -->
+  <color>Hue[.03, 1., .7]</color>											      	<!-- Optional: Color of the plotter limit. Suggested format: Hue[h,s,b] or RGBColor[r,g,b] where h,s,b,r,g,b are between 0 and 1. -->
+  <plotbydefault type="boolean">True</plotbydefault>					<!-- Optional: This value determines which limits are plotted by default in the internal version of the plotter.-->
+</limit>
