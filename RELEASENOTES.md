@@ -1,4 +1,12 @@
-## Current Release (v2.0.0)
+## Next Release (v2.1.1)
+
+## Release (v2.1.0) Date: 22.05.14
+
+* Added a .ipynb notebook to calculate the final result for the paper only. It is in
+  `1-PRD_Figures` and it's called `plot_final_yield.ipynb`. Note that it needs two large data
+files from the OSF link: `mcmc_Sor_128walk_50kstep_SNorm_v3.pkl` and `mcmc_Sor_128walk_50kstep_SNorm_v4.pkl`
+
+## Release (v2.0.0) Date: 21.12.14
 
 Reorganized the repository:
 * The `analysis_notebooks` directory has been removed. 
