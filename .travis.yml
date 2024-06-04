@@ -2,7 +2,7 @@
 #python:
 #  - "3.7"
 language: python
-python: 3.7
+python: 3.8
 os: linux
 dist: xenial
 install:
@@ -22,7 +22,7 @@ install:
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-  - conda env create -n test-environment python=$TRAVIS_PYTHON_VERSION -f nrSiCap.yml 
+  - conda env create -n test-environment -f nrSiCap.yml 
   - source activate test-environment
   # Give it permission to use the script I want it to use
   - sudo chmod 777 data
