@@ -1,0 +1,207 @@
+#################################################################
+#								#
+#		PROCESSING CONFIGURATION			#
+#								#
+#################################################################
+
+# =============================
+# MODIFICATION OF RAW DATA
+# =============================
+
+PARAMETER_INTEGER       MODIFY_RAWDATA                  =       1                       # modify for DCRC revC
+PARAMETER_STRING        MODIFICATION_TYPE  DETECTOR 1,3 =       UMNHVboard100mmHVDCRCrevC_1    # modification  type
+
+# =============================
+# PATH
+# =============================
+
+PATH	RAW_DATA		= 	$BATROOT_RAWDATA                              		# path to raw data
+PATH 	AUX_FILES		= 	$BATROOT_AUXFILES			             	# path to auxilliary files
+PATH    NOISE_FILES     	=	$BATROOT_NOISEFILES				 	# path to noise files and pulse templates
+PATH	RQ_DATA			= 	$BATROOT_RQDATA				                # Output ROOT file location
+PATH 	GPIB_FILE		= 	$BATROOT_GPIBFILES					# path to auxilliary files
+
+PREFIX  RQ_DATA_PREFIX  	=       umn_							# Prefix to the output file
+PREFIX  NOISE_PREFIX    	=       umn_Filter_						# Prefix to the noise file
+PREFIX  FILEINDEX_PREFIX 	=      F							# Fxxxx for normal data, Vxxxx for veto pulsar
+
+# =============================
+# READ AUXILLIARY FILES
+# =============================
+
+
+READ	ISR_FILE	  		=	0	# ISR file 
+READ	INFO_FILE	  		=	0	# Info file
+READ	GPIB_FILE	  		=	0	# GPIB
+READ 	DMM_FILE	  		=	0	# DMM file 
+READ 	FILTER_FILE	  		=	1	# FILTER file - mandatory for optimal filter processing!
+READ	DET_STATUS_FILE   		=   	0       # Detector status file
+READ	DATABASE	  		= 	0	# mySQL database (see settings end of this file)
+	
+# Note:
+#   - if READ INFO_FILE = 0 , default sample rate, pre and post-trigger are used (see below)
+#   - if READ ISR_FILE  = 0,  pulses are not normalized, no Qbias information
+
+
+
+# =============================
+# GENERAL PROCESSING CONFIG
+# =============================
+
+
+PARAMETER_INTEGER	MAX_EVENTS	=  	10000 		# max number of events to process
+PARAMETER_INTEGER	DEBUG		=	0 		# not activated yet
+PARAMETER_INTEGER	MAX_ZIPS	= 	6		# maximum number of detectors 
+PARAMETER_INTEGER   	MAX_TOWERS  	=   1              # total number of towers 
+
+
+# Type number taken from raw data format
+
+PARAMETER_INTEGER	DET_TYPE 		DETECTOR 1,3		= 1710   # 100mm HV one-sided readout (UMN HV board)
+PARAMETER_INTEGER	DET_TYPE 		DETECTOR 4  		= 4   # ZIPS
+
+
+PARAMETER_INTEGER       WRITE_PROCESS_INFO = 	1		# store processing settings
+PARAMETER_INTEGER       WRITE_SETTINGS_INFO  = 	1		# store analysis config parameters
+PARAMETER_INTEGER       WRITE_DETCONFIG_INFO  = 1		# store detector config parameters
+PARAMETER_INTEGER       WRITE_FILTER_INFO  = 	1		# calculate and store filter quantities
+PARAMETER_INTEGER       WRITE_NOISE_PULSES  =   1               # store pulses processed for filter calculation
+
+
+
+
+# =============================
+# ANALYSIS FLAGS
+# =============================
+
+
+# -------------  NOISE MONITOR PROCESSING -------------------
+
+DO_PROCESSING NOISEMONITOR 	= 	0
+
+# -------------  VETO PROCESSING -------------------
+
+DO_PROCESSING	VETO		=	0                    # needs the trigger processing 
+WRITE_RQ	VETO		=	0
+
+
+# ------------ TRIGGER  PROCESSING ------------------
+
+DO_PROCESSING	TRIGGER			=	0
+WRITE_RQ	TRIGGER			=	0
+ 
+
+# --------------- ZIP PROCESSING -------------------
+
+
+DO_PROCESSING		DETECTOR 1	=  	1    
+DO_PROCESSING		DETECTOR 4	=  	1    
+DO_PROCESSING		DETECTOR 2,3,5,6	=  	0    
+WRITE_RQ		DETECTOR 1	=	1	 
+WRITE_RQ		DETECTOR 4	=	1	 
+WRITE_RQ		DETECTOR 2,3,5,6	=  	0	 
+
+#CALC_PHONON_TEMPLATE	 DETECTOR 1   	=  	1
+#CALC_PHONON_TEMPLATE	 DETECTOR 4   	=  	1
+
+#CALC_CHARGE_TEMPLATE 	 DETECTOR 1   	=  	0		# changed this from 1 to 0 from the 100mm iZIP case. Maybe this line is entirely irrelevant for HV.
+
+#CALC_CHARGE_TEMPLATE 	 DETECTOR 4   	=  	0
+
+CALC_PHONON_TEMPLATE	 DETECTOR 1-15  	=  	1
+CALC_CHARGE_TEMPLATE 	 DETECTOR 1-15  	= 	1
+
+
+#
+#  flags for specific pulse algorithms 
+#  (name of the algorithm should be same as the analysis class)
+#  
+
+# ======== Phonon analysis classes  ======== 
+
+DO_PHONON_ALGORITHM	OptimalFilterPhonon		DETECTOR 1   =	1
+DO_PHONON_ALGORITHM	OptimalFilterPhonon		DETECTOR 4   =	0
+DO_PHONON_ALGORITHM	OptimalFilterPhonon		DETECTOR 2,3,5,6   =	0
+
+DO_PHONON_ALGORITHM     ConstFreqRTFTWalkPhonon		DETECTOR 1,4   =  1
+DO_PHONON_ALGORITHM     ConstFreqRTFTWalkPhonon		DETECTOR 2,3,5,6   =  0
+
+DO_PHONON_ALGORITHM     TailFitPhonon           	DETECTOR 1   =  1   # need charge OF and PT OF
+DO_PHONON_ALGORITHM     TailFitPhonon           	DETECTOR 4   =  0   # need charge OF and PT OF
+DO_PHONON_ALGORITHM     TailFitPhonon           	DETECTOR 2,3,5,6   =  0   # need charge OF and PT OF
+
+DO_PHONON_ALGORITHM 	PulseIntegral 			DETECTOR 1,4   =	1
+DO_PHONON_ALGORITHM 	PulseIntegral 			DETECTOR 2,3,5,6   =	0
+
+
+# NOT USED
+DO_PHONON_ALGORITHM     InflectionTime          	DETECTOR 1-6	=	0
+DO_PHONON_ALGORITHM	VarFreqRTFTWalkPhonon 		DETECTOR 1-6	=	0  # needs optimal filter
+DO_PHONON_ALGORITHM     NoiseSelector           	DETECTOR 1-6	=	0  # needs optimal filter and optionally rtftwalk
+
+
+
+
+# ======== Phonon analysis with sum of pulses ========
+
+DO_PHONON_TOT		OptimalFilterPhonon		DETECTOR 1	=	1
+DO_PHONON_TOT		OptimalFilterPhonon		DETECTOR 4	=	0
+DO_PHONON_TOT		OptimalFilterPhonon		DETECTOR 2,3,5,6	=	0
+
+DO_PHONON_TOT		OptimalFilterPhononNS		DETECTOR 1-6	=	0 # needs optimal filter on total pulse
+
+DO_PHONON_TOT		ConstFreqRTFTWalkPhonon		DETECTOR 1	=	1
+DO_PHONON_TOT		ConstFreqRTFTWalkPhonon		DETECTOR 4	=	0
+DO_PHONON_TOT		ConstFreqRTFTWalkPhonon		DETECTOR 2,3,5,6	=	0
+
+DO_PHONON_TOT		PulseIntegral			DETECTOR 1	=	1
+DO_PHONON_TOT		PulseIntegral			DETECTOR 4	=	0
+DO_PHONON_TOT		PulseIntegral			DETECTOR 2,3,5,6	=	0
+
+# NOT USED
+DO_PHONON_TOT		VarFreqRTFTWalkPhonon		DETECTOR 1-6	=	0
+
+
+
+
+# ======== Phonon analysis with sum of pulses per side ========
+
+DO_PHONON_SIDES		OptimalFilterPhonon		DETECTOR 1	=	1
+DO_PHONON_SIDES		OptimalFilterPhonon		DETECTOR 4	=	0
+
+DO_PHONON_SIDES 	ConstFreqRTFTWalkPhonon		DETECTOR 1	=	1
+DO_PHONON_SIDES 	ConstFreqRTFTWalkPhonon		DETECTOR 4	=	0
+
+DO_PHONON_SIDES		PulseIntegral 			DETECTOR 1	=	1
+DO_PHONON_SIDES		PulseIntegral 			DETECTOR 4	=	0
+
+
+# charge analysis classes - DO NOT modify or copy this comment (for auto_analysis)
+
+DO_CHARGE_ALGORITHM BasicPulseCalc               	DETECTOR 1,4		=	0
+
+DO_CHARGE_ALGORITHM     F5ChargeX               	DETECTOR 1,4		=	0
+
+DO_CHARGE_ALGORITHM	OptimalFilterCharge2X2		DETECTOR 1,4		=	0
+
+DO_CHARGE_ALGORITHM	OptimalFilterCharge		DETECTOR 1,4		=	0
+
+DO_CHARGE_ALGORITHM	RTFTWalkCharge			DETECTOR 1,4		=	0
+
+DO_CHARGE_ALGORITHM	ChargeNoiseCovariance 		DETECTOR 1,4		=	0   # only for special studies, located in NoiseBuilder
+
+
+
+# set to 1 to run in simulation mode (using randoms).  If any of the switches below
+# are set to true, BatRoot will be run in "simulation mode".  Its not permitted to
+# have this on for some detectors and off for others!
+# Look for configurable params for simulations in the analysis config file
+PARAMETER_INTEGER       DO_SIM_FROM_TEMPLATE                      =      0
+PARAMETER_INTEGER       DO_SIM_FROM_PULSE                         =      0
+
+# choose which channels to inject into
+PARAMETER_INTEGER       DO_CHARGESIM                              =      0
+PARAMETER_INTEGER       DO_PHONONSIM                              =      0    # must be on if any of the flags below are on!
+PARAMETER_INTEGER       DO_PCHANSIM                               =      0    # individual phonon channels
+PARAMETER_INTEGER       DO_PSIDESSIM                              =      0    # side-summed phonon channels
+PARAMETER_INTEGER       DO_PTSIM                                  =      0    # total phonon pulse
